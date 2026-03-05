@@ -1588,6 +1588,16 @@ async function dbxInit(){
   }
 }
 window.addEventListener('load',()=>setTimeout(dbxInit,400));
+
+// ── BIND DROPBOX BUTTON EVENTS (after DOM ready) ──
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('dbxConnectBtn').addEventListener('click', function(){ openModal('dbxModal'); });
+  document.getElementById('dbxSyncBtn').addEventListener('click', dbxManualSync);
+  document.getElementById('dbxDisconnectBtn').addEventListener('click', dbxDisconnect);
+  document.getElementById('dbxModalClose').addEventListener('click', function(){ closeModal('dbxModal'); });
+  document.getElementById('dbxModalCancel').addEventListener('click', function(){ closeModal('dbxModal'); });
+  document.getElementById('dbxConnectSubmit').addEventListener('click', dbxConnect);
+});
 </script>
 
 <!-- ══ DROPBOX BAR ══ -->
@@ -1595,9 +1605,9 @@ window.addEventListener('load',()=>setTimeout(dbxInit,400));
   <div class="dbx-dot offline" id="dbxDot"></div>
   <span class="dbx-status" id="dbxStatus">Dropbox未接続</span>
   <div style="flex:1;"></div>
-  <button class="dbx-btn dbx-sync-now" id="dbxSyncBtn" onclick="dbxManualSync()" style="display:none;">↻ 同期</button>
-  <button class="dbx-btn dbx-disconnect" id="dbxDisconnectBtn" onclick="dbxDisconnect()" style="display:none;">切断</button>
-  <button class="dbx-btn dbx-connect" id="dbxConnectBtn" onclick="openModal('dbxModal')">☁ Dropbox接続</button>
+  <button class="dbx-btn dbx-sync-now" id="dbxSyncBtn" style="display:none;">↻ 同期</button>
+  <button class="dbx-btn dbx-disconnect" id="dbxDisconnectBtn" style="display:none;">切断</button>
+  <button class="dbx-btn dbx-connect" id="dbxConnectBtn">☁ Dropbox接続</button>
 </div>
 
 <!-- ══ DROPBOX MODAL ══ -->
@@ -1605,7 +1615,7 @@ window.addEventListener('load',()=>setTimeout(dbxInit,400));
   <div class="modal modal-lg">
     <div class="modal-hdr">
       <span class="modal-title">☁ Dropbox接続設定</span>
-      <button class="btn btn-ghost" onclick="closeModal('dbxModal')">✕</button>
+      <button class="btn btn-ghost" id="dbxModalClose">✕</button>
     </div>
     <div class="modal-body">
       <div class="dbx-setup">
@@ -1633,8 +1643,8 @@ window.addEventListener('load',()=>setTimeout(dbxInit,400));
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-outline" onclick="closeModal('dbxModal')">キャンセル</button>
-      <button class="btn btn-primary" onclick="dbxConnect()">接続する</button>
+      <button class="btn btn-outline" id="dbxModalCancel">キャンセル</button>
+      <button class="btn btn-primary" id="dbxConnectSubmit">接続する</button>
     </div>
   </div>
 </div>
