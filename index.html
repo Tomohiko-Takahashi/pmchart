@@ -263,7 +263,7 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--gray-50);color:var(-
 #printHeader p{font-size:11px;color:var(--gray-500);margin-top:3px;}
 
 /* SECTION DIVIDER IN TASK LIST */
-.task-section-hdr{height:28px;display:flex;align-items:center;padding:0 12px;background:var(--gray-50);border-bottom:1px solid var(--gray-100);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--gray-400);gap:6px;}
+.task-section-hdr{height:42px;display:flex;align-items:center;padding:0 12px;background:var(--gray-50);border-bottom:1px solid var(--gray-100);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--gray-400);gap:6px;}
 
 @media print{
   @page{size:A3 landscape;margin:8mm;}
@@ -296,9 +296,7 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--gray-50);color:var(-
 .dbx-btn-connect{background:#0061ff;color:#fff;}.dbx-btn-connect:hover{background:#0052d9;}
 .dbx-btn-sync{background:var(--gray-100);color:var(--gray-700);}.dbx-btn-sync:hover{background:var(--gray-200);}
 .dbx-btn-disc{background:var(--gray-100);color:var(--gray-500);}.dbx-btn-disc:hover{background:var(--danger-light);color:var(--danger);}
-/* bottom padding so content isn't hidden behind bar */
 .app-layout{padding-bottom:38px;}
-/* Dropbox modal steps */
 .dbx-steps{background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:10px;}
 .dbx-step{display:flex;gap:10px;align-items:flex-start;font-size:11px;color:var(--gray-700);line-height:1.6;}
 .dbx-num{width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;font-size:10px;font-weight:700;
@@ -1107,14 +1105,14 @@ function renderMain(){
   // Section: normal tasks
   if(normalTasks.length>0){
     leftTasks+=`<div class="task-section-hdr"><span>📋</span><span>通常タスク (${normalTasks.length})</span></div>`;
-    rightBars+=`<div style="position:absolute;top:${rowIndex*42}px;left:0;right:0;height:28px;background:var(--gray-50);border-bottom:1px solid var(--gray-100);z-index:1;"></div>`;
+    rightBars+=`<div style="position:absolute;top:${rowIndex*42}px;left:0;right:0;height:42px;background:var(--gray-50);border-bottom:1px solid var(--gray-100);z-index:1;"></div>`;
     rowIndex++;
     normalTasks.forEach(t=>addTaskRow(t));
   }
   // Section: recurring tasks
   if(recurTasks.length>0){
     leftTasks+=`<div class="task-section-hdr" style="background:var(--recur-light);color:var(--recur);"><span>🔁</span><span>定期タスク (${recurTasks.length})</span></div>`;
-    rightBars+=`<div style="position:absolute;top:${rowIndex*42}px;left:0;right:0;height:28px;background:var(--recur-light);border-bottom:1px solid #c4b5fd;z-index:1;"></div>`;
+    rightBars+=`<div style="position:absolute;top:${rowIndex*42}px;left:0;right:0;height:42px;background:var(--recur-light);border-bottom:1px solid #c4b5fd;z-index:1;"></div>`;
     rowIndex++;
     recurTasks.forEach(t=>addTaskRow(t));
   }
@@ -1374,12 +1372,12 @@ load();render();
 
 <script>
 // ══ DROPBOX SYNC ══
-const DBX_KEY = 'pmchart_dbx_v3';
-const DBX_PATH = '/pmchart-data.json';
-let _dbxToken = localStorage.getItem(DBX_KEY) || '';
-let _dbxEnabled = false;
-let _dbxTimer = null;
-let _dbxBusy = false;
+var DBX_KEY = 'pmchart_dbx_v3';
+var DBX_PATH = '/pmchart-data.json';
+var _dbxToken = localStorage.getItem(DBX_KEY) || '';
+var _dbxEnabled = false;
+var _dbxTimer = null;
+var _dbxBusy = false;
 
 function _dbxDot(cls, msg) {
   var d = document.getElementById('dbxDot');
@@ -1400,32 +1398,26 @@ function _dbxMsg(msg, color) {
   el.textContent = msg;
 }
 
-async function _apiPost(url, headers, body) {
-  var r = await fetch(url, { method: 'POST', headers: headers, body: body });
-  if (!r.ok) {
-    var e = await r.json().catch(function() { return {}; });
-    throw new Error((e.error_summary || r.status) + '');
-  }
-  return r;
-}
 async function _dbxWhoami() {
-  var r = await _apiPost(
-    'https://api.dropboxapi.com/2/users/get_current_account',
-    { 'Authorization': 'Bearer ' + _dbxToken, 'Content-Type': 'application/json' },
-    'null'
-  );
+  var r = await fetch('https://api.dropboxapi.com/2/users/get_current_account', {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + _dbxToken, 'Content-Type': 'application/json' },
+    body: 'null'
+  });
+  if (!r.ok) throw new Error('トークンが無効です (' + r.status + ')');
   return r.json();
 }
 async function _dbxUpload() {
-  await _apiPost(
-    'https://content.dropboxapi.com/2/files/upload',
-    {
+  var r = await fetch('https://content.dropboxapi.com/2/files/upload', {
+    method: 'POST',
+    headers: {
       'Authorization': 'Bearer ' + _dbxToken,
       'Dropbox-API-Arg': JSON.stringify({ path: DBX_PATH, mode: 'overwrite', autorename: false, mute: true }),
       'Content-Type': 'application/octet-stream'
     },
-    JSON.stringify(state)
-  );
+    body: JSON.stringify(state)
+  });
+  if (!r.ok) { var e = await r.json().catch(function(){return{};}); throw new Error(e.error_summary || r.status); }
 }
 async function _dbxDownload() {
   var r = await fetch('https://content.dropboxapi.com/2/files/download', {
@@ -1516,15 +1508,14 @@ async function _dbxPull() {
   try {
     var remote = await _dbxDownload();
     if (!remote) return;
-    var rs = JSON.stringify(remote.projects ? remote.projects.map(function(p){return p.id+':'+(p.tasks?p.tasks.length:0);}) : []);
-    var ls = JSON.stringify(state.projects ? state.projects.map(function(p){return p.id+':'+(p.tasks?p.tasks.length:0);}) : []);
+    var rs = JSON.stringify((remote.projects||[]).map(function(p){return p.id+':'+(p.tasks?p.tasks.length:0);}));
+    var ls = JSON.stringify((state.projects||[]).map(function(p){return p.id+':'+(p.tasks?p.tasks.length:0);}));
     if (rs !== ls) {
       state = remote;
       localStorage.setItem('pmchart6', JSON.stringify(state));
       render();
       var now = new Date();
-      var ts = ('0'+now.getHours()).slice(-2) + ':' + ('0'+now.getMinutes()).slice(-2);
-      _dbxDot('ok', '受信 ' + ts);
+      _dbxDot('ok', '受信 ' + ('0'+now.getHours()).slice(-2) + ':' + ('0'+now.getMinutes()).slice(-2));
     }
   } catch(e) {}
 }
@@ -1534,7 +1525,6 @@ function _dbxStartTimer() {
   _dbxTimer = setInterval(_dbxPull, 30000);
 }
 
-// Hook into save()
 var _origSave = save;
 window.save = function() {
   _origSave();
@@ -1544,19 +1534,16 @@ window.save = function() {
       _dbxDot('syncing', '保存中...');
       _dbxUpload().then(function() {
         var now = new Date();
-        var ts = ('0'+now.getHours()).slice(-2) + ':' + ('0'+now.getMinutes()).slice(-2);
-        _dbxDot('ok', '保存済み ' + ts);
-      }).catch(function(e) { _dbxDot('error', '保存エラー'); });
+        _dbxDot('ok', '保存済み ' + ('0'+now.getHours()).slice(-2) + ':' + ('0'+now.getMinutes()).slice(-2));
+      }).catch(function() { _dbxDot('error', '保存エラー'); });
     }, 1500);
   }
 };
 
-// Visibility change (iPhone foreground)
 document.addEventListener('visibilitychange', function() {
   if (!document.hidden && _dbxEnabled) _dbxPull();
 });
 
-// Init on load
 async function _dbxInit() {
   if (!_dbxToken) { _dbxDot('', 'Dropbox未接続'); _dbxButtons(false); return; }
   _dbxDot('syncing', 'Dropbox確認中...');
@@ -1564,7 +1551,6 @@ async function _dbxInit() {
     await _dbxWhoami();
     _dbxEnabled = true;
     await _dbxInitialSync();
-    var now = new Date();
     _dbxDot('ok', 'Dropbox接続済み');
     _dbxButtons(true);
     _dbxStartTimer();
@@ -1576,7 +1562,6 @@ async function _dbxInit() {
   }
 }
 
-// Bind button events after DOM ready
 document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('dbxConnBtn').addEventListener('click', function() { openModal('dbxModal'); });
   document.getElementById('dbxSyncBtn').addEventListener('click', dbxSyncNow);
@@ -1584,11 +1569,9 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('dbxModalCloseBtn').addEventListener('click', function() { closeModal('dbxModal'); });
   document.getElementById('dbxModalCancelBtn').addEventListener('click', function() { closeModal('dbxModal'); });
   document.getElementById('dbxSubmitBtn').addEventListener('click', dbxSubmit);
-  // Init Dropbox
   setTimeout(_dbxInit, 300);
 });
 
-// ══ PWA SERVICE WORKER ══
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
     navigator.serviceWorker.register('./sw.js').catch(function(e) { console.log('SW:', e); });
