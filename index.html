@@ -4,12 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PMChart">
 <meta name="theme-color" content="#2563eb">
-<link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="icon-192.png">
-
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%232563eb'/><text y='.9em' font-size='70' x='10'>📋</text></svg>">
 <title>PMChart – プロジェクトスケジュール管理</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -281,46 +279,51 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--gray-50);color:var(-
   #printHeader{display:block !important;}
 }
 
-/* ── DROPBOX SYNC ── */
-.sync-bar{display:flex;align-items:center;gap:8px;padding:6px 14px;background:var(--gray-50);border-bottom:1px solid var(--gray-200);font-size:11px;flex-shrink:0;}
-.sync-status{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:500;}
-.sync-dot{width:7px;height:7px;border-radius:50%;background:var(--gray-300);flex-shrink:0;transition:.3s;}
-.sync-dot.connected{background:var(--success);}
-.sync-dot.syncing{background:var(--warning);animation:pulse .8s infinite;}
-.sync-dot.error{background:var(--danger);}
-@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
-.sync-time{color:var(--gray-400);font-size:10px;}
-.dbx-btn{background:#0061ff;color:#fff;border:none;border-radius:5px;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:4px;transition:.15s;}
-.dbx-btn:hover{background:#0052d9;}
-.dbx-btn.disconnect{background:var(--gray-100);color:var(--gray-600);}.dbx-btn.disconnect:hover{background:var(--danger-light);color:var(--danger);}
+/* ══ DROPBOX SYNC UI ══ */
+.dbx-bar{
+  position:fixed;bottom:0;left:0;right:0;
+  background:#fff;border-top:1px solid var(--gray-200);
+  padding:7px 16px;display:flex;align-items:center;gap:10px;
+  z-index:500;box-shadow:0 -2px 12px rgba(0,0,0,.07);
+  font-size:11px;
+}
+.dbx-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;transition:.3s;}
+.dbx-dot.ok{background:#059669;}
+.dbx-dot.syncing{background:#d97706;animation:pulse .8s infinite alternate;}
+.dbx-dot.error{background:#dc2626;}
+.dbx-dot.offline{background:#9ca3af;}
+@keyframes pulse{from{opacity:1;}to{opacity:.3;}}
+.dbx-status{color:var(--gray-600);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.dbx-btn{padding:4px 10px;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;border:none;font-family:inherit;transition:.15s;}
+.dbx-connect{background:#0061FF;color:#fff;}.dbx-connect:hover{background:#0052d9;}
+.dbx-disconnect{background:var(--gray-100);color:var(--gray-600);}.dbx-disconnect:hover{background:var(--danger-light);color:var(--danger);}
+.dbx-sync-now{background:var(--accent-light);color:var(--accent);}.dbx-sync-now:hover{background:var(--accent);color:#fff;}
 
-/* Dropbox setup modal */
-.dbx-setup{background:linear-gradient(135deg,#f0f7ff,#e8f4fd);border:1px solid #bfdbfe;border-radius:10px;padding:16px;}
-.dbx-setup-title{font-size:13px;font-weight:700;color:#1e40af;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
-.dbx-step{display:flex;gap:10px;margin-bottom:10px;align-items:flex-start;}
-.dbx-step-num{width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
-.dbx-step-text{font-size:11px;color:var(--gray-700);line-height:1.6;}
-.dbx-step-text a{color:var(--accent);text-decoration:underline;}
-.dbx-step-text code{background:var(--gray-100);padding:1px 5px;border-radius:3px;font-family:'DM Mono',monospace;font-size:10px;}
-.token-input-wrap{display:flex;gap:6px;margin-top:6px;}
-.token-input-wrap .finput{flex:1;font-family:'DM Mono',monospace;font-size:11px;}
+/* App key setup modal */
+.dbx-setup{background:var(--gray-50);border:1px dashed var(--gray-300);border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:10px;}
+.dbx-setup-title{font-size:13px;font-weight:600;color:var(--gray-800);}
+.dbx-setup-step{display:flex;gap:8px;align-items:flex-start;font-size:11px;color:var(--gray-600);line-height:1.6;}
+.dbx-setup-num{background:var(--accent);color:#fff;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;margin-top:1px;}
+.dbx-setup-step a{color:var(--accent);text-decoration:none;font-weight:600;}
+.dbx-setup-step a:hover{text-decoration:underline;}
+.dbx-key-input{width:100%;padding:8px 10px;border:1.5px solid var(--gray-200);border-radius:6px;font-family:'DM Mono',monospace;font-size:12px;outline:none;transition:.15s;}
+.dbx-key-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-light);}
 
+/* iOS add to homescreen banner */
+.ios-banner{position:fixed;bottom:52px;left:12px;right:12px;background:var(--gray-800);color:#fff;
+  border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:10px;z-index:600;
+  box-shadow:var(--sh-lg);animation:slideUp .3s ease;}
+@keyframes slideUp{from{transform:translateY(20px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+.ios-banner-icon{font-size:28px;flex-shrink:0;}
+.ios-banner-text{flex:1;font-size:11px;line-height:1.5;}
+.ios-banner-text strong{display:block;font-size:12px;margin-bottom:2px;}
+.ios-banner-close{background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:11px;}
+
+/* bottom padding for dbx-bar */
+.app-layout{padding-bottom:40px;}
 </style>
 </head>
 <body>
-
-<!-- DROPBOX SYNC BAR -->
-<div class="sync-bar" id="syncBar">
-  <div class="sync-status">
-    <div class="sync-dot" id="syncDot"></div>
-    <span id="syncLabel">Dropbox 未接続</span>
-  </div>
-  <span class="sync-time" id="syncTime"></span>
-  <div style="flex:1;"></div>
-  <button class="dbx-btn" id="dbxConnectBtn" onclick="openDbxModal()">☁ Dropbox 接続</button>
-  <button class="dbx-btn disconnect" id="dbxDisconnectBtn" style="display:none;" onclick="disconnectDropbox()">✕ 切断</button>
-  <button class="btn btn-outline btn-sm" id="dbxSyncNowBtn" style="display:none;" onclick="syncNow()">⟳ 今すぐ同期</button>
-</div>
 
 <div class="topbar">
   <div class="topbar-l">
@@ -537,8 +540,13 @@ let currentScale='day';
 let selDows=new Set([1,2,3,4,5]); // Mon-Fri default
 let state={projects:[],currentId:null};
 
-function load(){try{const s=localStorage.getItem('pmchart6');if(s)state=JSON.parse(s);}catch(e){}}
-function save(){localStorage.setItem('pmchart6',JSON.stringify(state));}
+// ── LOCAL STORAGE ──
+function loadLocal(){try{const s=localStorage.getItem('pmchart6');if(s){state=JSON.parse(s);return true;}}catch(e){}return false;}
+function saveLocal(){try{localStorage.setItem('pmchart6',JSON.stringify(state));}catch(e){}}
+
+// ── THESE ARE OVERRIDDEN BELOW BY DROPBOX LAYER ──
+function load(){loadLocal();}
+function save(){saveLocal();if(window.dbxSave)window.dbxSave();}
 function proj(){return state.projects.find(p=>p.id===state.currentId)||null;}
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2);}
 
@@ -1337,346 +1345,301 @@ document.addEventListener('click',()=>document.getElementById('projDrop').style.
 // ══════════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════════
-load();render();
+loadLocal();render();initDropbox();registerSW();
+
+// ══════════════════════════════════════════════
+// PWA SERVICE WORKER
+// ══════════════════════════════════════════════
+function registerSW(){
+  if('serviceWorker' in navigator){
+    // Inline SW as blob since we're a single file
+    const swCode = `
+const CACHE='pmchart-v1';
+self.addEventListener('install',e=>{self.skipWaiting();});
+self.addEventListener('activate',e=>{
+  e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))));
+  self.clients.claim();
+});
+self.addEventListener('fetch',e=>{
+  if(e.request.url.includes('dropbox')||e.request.url.includes('googleapis'))return;
+  e.respondWith(caches.match(e.request).then(c=>{
+    return c||fetch(e.request).then(r=>{
+      if(r&&r.status===200&&r.type==='basic'){const cl=r.clone();caches.open(CACHE).then(ca=>ca.put(e.request,cl));}
+      return r;
+    }).catch(()=>c||new Response('Offline',{status:503}));
+  }));
+});`;
+    const blob = new Blob([swCode],{type:'application/javascript'});
+    const url = URL.createObjectURL(blob);
+    navigator.serviceWorker.register(url).catch(()=>{});
+  }
+}
+
+// iOS "Add to Home Screen" banner
+function showIOSBanner(){
+  const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isStandalone=window.navigator.standalone;
+  const shown=localStorage.getItem('ios_banner_shown');
+  if(isIOS&&!isStandalone&&!shown){
+    const banner=document.createElement('div');banner.className='ios-banner';banner.id='iosBanner';
+    banner.innerHTML=`<div class="ios-banner-icon">📋</div>
+      <div class="ios-banner-text">
+        <strong>ホーム画面に追加できます</strong>
+        Safariの「共有」ボタン（↑）→「ホーム画面に追加」でアプリのように使えます
+      </div>
+      <button class="ios-banner-close" onclick="dismissIOSBanner()">✕</button>`;
+    document.body.appendChild(banner);
+  }
+}
+function dismissIOSBanner(){
+  localStorage.setItem('ios_banner_shown','1');
+  const b=document.getElementById('iosBanner');if(b)b.remove();
+}
+
 </script>
 
-<!-- DROPBOX SETUP MODAL -->
+<script>
+// ══════════════════════════════════════════════
+// DROPBOX SYNC  (Access Token method — simple)
+// ══════════════════════════════════════════════
+const DBX_FILE = '/pmchart-data.json';
+const DBX_TOKEN_KEY = 'pmchart_dbx_token_v2';
+let dbxToken = localStorage.getItem(DBX_TOKEN_KEY) || '';
+let dbxSyncing = false;
+let dbxTimer = null;
+let dbxEnabled = false;
+
+// ── STATUS UI ──
+function dbxSetUI(dot, msg, showSync, showDisc){
+  const d=document.getElementById('dbxDot');
+  const s=document.getElementById('dbxStatus');
+  const syncBtn=document.getElementById('dbxSyncBtn');
+  const discBtn=document.getElementById('dbxDisconnectBtn');
+  const connBtn=document.getElementById('dbxConnectBtn');
+  if(!d)return;
+  d.className='dbx-dot '+(dot||'');
+  s.textContent=msg;
+  syncBtn.style.display=showSync?'inline-flex':'none';
+  discBtn.style.display=showDisc?'inline-flex':'none';
+  connBtn.style.display=(!showDisc)?'inline-flex':'none';
+}
+
+// ── API CALLS ──
+async function dbxCheckToken(){
+  const r=await fetch('https://api.dropboxapi.com/2/users/get_current_account',{
+    method:'POST',headers:{'Authorization':'Bearer '+dbxToken,'Content-Type':'application/json'},body:'null'});
+  if(!r.ok)throw new Error('トークンが無効です ('+r.status+')');
+  return r.json();
+}
+async function dbxUpload(data){
+  const r=await fetch('https://content.dropboxapi.com/2/files/upload',{
+    method:'POST',
+    headers:{
+      'Authorization':'Bearer '+dbxToken,
+      'Dropbox-API-Arg':JSON.stringify({path:DBX_FILE,mode:'overwrite',autorename:false,mute:true}),
+      'Content-Type':'application/octet-stream'
+    },
+    body:JSON.stringify(data)
+  });
+  if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error_summary||'Upload failed');}
+}
+async function dbxDownload(){
+  const r=await fetch('https://content.dropboxapi.com/2/files/download',{
+    method:'POST',
+    headers:{'Authorization':'Bearer '+dbxToken,'Dropbox-API-Arg':JSON.stringify({path:DBX_FILE})}
+  });
+  if(r.status===409)return null;
+  if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error_summary||'Download failed');}
+  return r.json();
+}
+
+// ── CONNECT ──
+async function dbxConnect(){
+  const token=document.getElementById('dbxTokenInput').value.trim();
+  if(!token){alert('トークンを入力してください');return;}
+  const msgEl=document.getElementById('dbxConnectMsg');
+  msgEl.style.display='block';
+  msgEl.style.color='var(--gray-500)';
+  msgEl.textContent='🔄 接続確認中...';
+  dbxToken=token;
+  try{
+    const acct=await dbxCheckToken();
+    localStorage.setItem(DBX_TOKEN_KEY,token);
+    dbxEnabled=true;
+    msgEl.style.color='var(--success)';
+    msgEl.textContent='✅ 接続成功！ '+( acct.name?.display_name||'')+'でログイン中';
+    dbxSetUI('syncing','同期中...',false,false);
+    // Initial sync
+    try{
+      const remote=await dbxDownload();
+      if(remote&&remote.projects){
+        const remoteIds=new Set(remote.projects.map(p=>p.id));
+        const localOnly=state.projects.filter(p=>!remoteIds.has(p.id));
+        state.projects=[...remote.projects,...localOnly];
+        if(remote.currentId)state.currentId=remote.currentId;
+        save_local();render();
+      }else{
+        await dbxUpload(state);
+      }
+    }catch(e){ await dbxUpload(state).catch(()=>{}); }
+    const now=new Date();
+    dbxSetUI('ok','Dropbox同期済み ✓ '+now.getHours()+':'+String(now.getMinutes()).padStart(2,'0'),true,true);
+    dbxStartTimer();
+    setTimeout(()=>closeModal('dbxModal'),1200);
+  }catch(e){
+    dbxToken='';
+    msgEl.style.color='var(--danger)';
+    msgEl.textContent='❌ 失敗: '+e.message;
+    dbxSetUI('error','接続エラー',false,false);
+  }
+}
+
+// ── DISCONNECT ──
+function dbxDisconnect(){
+  if(!confirm('Dropbox接続を切断しますか？
+ローカルのデータは保持されます。'))return;
+  localStorage.removeItem(DBX_TOKEN_KEY);
+  dbxToken='';dbxEnabled=false;
+  if(dbxTimer)clearInterval(dbxTimer);
+  dbxSetUI('offline','Dropbox未接続',false,false);
+}
+
+// ── MANUAL SYNC ──
+async function dbxManualSync(){
+  if(!dbxEnabled)return;
+  dbxSetUI('syncing','同期中...',false,true);
+  try{
+    await dbxUpload(state);
+    await dbxPull();
+    const now=new Date();
+    dbxSetUI('ok','同期完了 '+now.getHours()+':'+String(now.getMinutes()).padStart(2,'0'),true,true);
+  }catch(e){dbxSetUI('error','同期エラー: '+e.message.slice(0,30),true,true);}
+}
+
+// ── AUTO PULL ──
+async function dbxPull(){
+  if(!dbxEnabled||dbxSyncing)return;
+  dbxSyncing=true;
+  try{
+    const remote=await dbxDownload();
+    if(!remote)return;
+    const rs=JSON.stringify(remote.projects?.map(p=>p.id+':'+(p.tasks?.length||0)));
+    const ls=JSON.stringify(state.projects?.map(p=>p.id+':'+(p.tasks?.length||0)));
+    if(rs!==ls){
+      state=remote;save_local();render();
+      const now=new Date();
+      dbxSetUI('ok','受信 '+now.getHours()+':'+String(now.getMinutes()).padStart(2,'0'),true,true);
+    }
+  }catch(e){console.warn('pull:',e);}
+  finally{dbxSyncing=false;}
+}
+function dbxStartTimer(){
+  if(dbxTimer)clearInterval(dbxTimer);
+  dbxTimer=setInterval(dbxPull,30000);
+}
+
+// ── SAVE HOOK: wrap original save() ──
+function save_local(){
+  localStorage.setItem('pmchart6',JSON.stringify(state));
+}
+const _save_orig=save;
+window.save=function(){
+  _save_orig();
+  if(dbxEnabled){
+    clearTimeout(window._dbxDebounce);
+    window._dbxDebounce=setTimeout(async()=>{
+      dbxSetUI('syncing','保存中...',false,true);
+      try{
+        await dbxUpload(state);
+        const now=new Date();
+        dbxSetUI('ok','保存済み '+now.getHours()+':'+String(now.getMinutes()).padStart(2,'0'),true,true);
+      }catch(e){dbxSetUI('error','保存エラー',true,true);}
+    },1500);
+  }
+};
+
+// ── VISIBILITY CHANGE (iPhone background→foreground) ──
+document.addEventListener('visibilitychange',()=>{
+  if(!document.hidden&&dbxEnabled)dbxPull();
+});
+
+// ── INIT ON LOAD ──
+async function dbxInit(){
+  if(!dbxToken){dbxSetUI('offline','Dropbox未接続',false,false);return;}
+  dbxSetUI('syncing','Dropbox確認中...',false,false);
+  try{
+    await dbxCheckToken();
+    dbxEnabled=true;
+    try{
+      const remote=await dbxDownload();
+      if(remote&&remote.projects){
+        const remoteIds=new Set(remote.projects.map(p=>p.id));
+        const localOnly=state.projects.filter(p=>!remoteIds.has(p.id));
+        state.projects=[...remote.projects,...localOnly];
+        if(remote.currentId)state.currentId=remote.currentId;
+        save_local();render();
+      }
+    }catch(e){}
+    const now=new Date();
+    dbxSetUI('ok','Dropbox接続済み ✓',true,true);
+    dbxStartTimer();
+  }catch(e){
+    localStorage.removeItem(DBX_TOKEN_KEY);
+    dbxToken='';
+    dbxSetUI('error','再接続が必要です',false,false);
+  }
+}
+window.addEventListener('load',()=>setTimeout(dbxInit,400));
+</script>
+
+<!-- ══ DROPBOX BAR ══ -->
+<div class="dbx-bar" id="dbxBar">
+  <div class="dbx-dot offline" id="dbxDot"></div>
+  <span class="dbx-status" id="dbxStatus">Dropbox未接続</span>
+  <div style="flex:1;"></div>
+  <button class="dbx-btn dbx-sync-now" id="dbxSyncBtn" onclick="dbxManualSync()" style="display:none;">↻ 同期</button>
+  <button class="dbx-btn dbx-disconnect" id="dbxDisconnectBtn" onclick="dbxDisconnect()" style="display:none;">切断</button>
+  <button class="dbx-btn dbx-connect" id="dbxConnectBtn" onclick="openModal('dbxModal')">☁ Dropbox接続</button>
+</div>
+
+<!-- ══ DROPBOX MODAL ══ -->
 <div class="modal-overlay" id="dbxModal">
   <div class="modal modal-lg">
     <div class="modal-hdr">
-      <span class="modal-title">☁ Dropbox 接続設定</span>
+      <span class="modal-title">☁ Dropbox接続設定</span>
       <button class="btn btn-ghost" onclick="closeModal('dbxModal')">✕</button>
     </div>
     <div class="modal-body">
       <div class="dbx-setup">
         <div class="dbx-setup-title">📋 セットアップ手順（約3分）</div>
-        <div class="dbx-step">
-          <div class="dbx-step-num">1</div>
-          <div class="dbx-step-text">
-            <a href="https://www.dropbox.com/developers/apps" target="_blank">Dropbox Developers</a> を開く<br>
-            「Create app」→「Scoped access」→「App folder」を選択
-          </div>
-        </div>
-        <div class="dbx-step">
-          <div class="dbx-step-num">2</div>
-          <div class="dbx-step-text">
-            App名を入力（例：<code>PMChart</code>）して「Create app」
-          </div>
-        </div>
-        <div class="dbx-step">
-          <div class="dbx-step-num">3</div>
-          <div class="dbx-step-text">
-            「Permissions」タブ →「files.content.write」「files.content.read」にチェック → 「Submit」
-          </div>
-        </div>
-        <div class="dbx-step">
-          <div class="dbx-step-num">4</div>
-          <div class="dbx-step-text">
-            「Settings」タブ → 「OAuth 2」→「Generated access token」の「Generate」ボタンでトークンを生成
-          </div>
-        </div>
-        <div class="dbx-step">
-          <div class="dbx-step-num">5</div>
-          <div class="dbx-step-text">
-            生成されたトークンを下に貼り付けて「接続する」
-            <div class="token-input-wrap">
-              <input class="finput" type="password" id="dbxTokenInput" placeholder="sl.xxxxxxxxxxxxxxxxxx...">
-              <button class="dbx-btn" onclick="connectDropbox()">接続する</button>
-            </div>
-          </div>
-        </div>
+        <div class="dbx-setup-step"><div class="dbx-setup-num">1</div>
+          <div><a href="https://www.dropbox.com/developers/apps" target="_blank" style="color:var(--accent);">Dropbox Developers</a> を開いて「Create app」をクリック</div></div>
+        <div class="dbx-setup-step"><div class="dbx-setup-num">2</div>
+          <div>「Scoped access」→「App folder」→ App名を入力（例：PMChart）→「Create app」</div></div>
+        <div class="dbx-setup-step"><div class="dbx-setup-num">3</div>
+          <div>「Permissions」タブ → <strong>files.content.write</strong> と <strong>files.content.read</strong> にチェック → 「Submit」</div></div>
+        <div class="dbx-setup-step"><div class="dbx-setup-num">4</div>
+          <div>「Settings」タブ →「OAuth 2」セクション →「Generated access token」の「<strong>Generate</strong>」ボタンをクリック</div></div>
+        <div class="dbx-setup-step"><div class="dbx-setup-num">5</div>
+          <div>表示されたトークンをコピーして下に貼り付け</div></div>
       </div>
-
-      <div class="info-box" style="margin-top:4px;">
-        <strong>💡 同期の仕組み：</strong><br>
-        データは Dropbox の <code>/アプリ/PMChart/pmchart-data.json</code> に保存されます。<br>
-        PCのブラウザ・iPhoneのSafariどちらで開いてもDropbox経由でデータが共有されます。<br>
-        <strong>⚠️ トークンはこのデバイスのみに保存されます。複数デバイスで使う場合は各デバイスで設定してください。</strong>
+      <div class="fg" style="margin-top:4px;">
+        <label class="flabel">アクセストークン</label>
+        <input class="finput" type="password" id="dbxTokenInput" placeholder="sl.xxxxxxxxxxxxxxxxxxxxxxxx...">
       </div>
-
-      <div id="dbxStatus" style="display:none;"></div>
+      <div id="dbxConnectMsg" style="display:none;font-size:12px;padding:8px 0;"></div>
+      <div style="background:var(--accent-light);border-radius:6px;padding:10px 12px;font-size:11px;color:#1e40af;">
+        💡 データは <code>/Apps/PMChart/pmchart-data.json</code> に保存されます。<br>
+        iPhone・PCどちらで開いても同じデータが同期されます。<br>
+        ⚠️ トークンはこのデバイスのみに保存。複数デバイスで使う場合は各デバイスで設定してください。
+      </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-outline" onclick="closeModal('dbxModal')">閉じる</button>
+      <button class="btn btn-outline" onclick="closeModal('dbxModal')">キャンセル</button>
+      <button class="btn btn-primary" onclick="dbxConnect()">接続する</button>
     </div>
   </div>
 </div>
-
-
-<script>
-// ══════════════════════════════════════════════
-// PWA SERVICE WORKER
-// ══════════════════════════════════════════════
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch(e => console.log('SW:', e));
-  });
-}
-
-// ══════════════════════════════════════════════
-// DROPBOX SYNC ENGINE
-// ══════════════════════════════════════════════
-const DBX_FILE = '/pmchart-data.json';
-const DBX_TOKEN_KEY = 'pmchart_dbx_token';
-
-let dbxToken = localStorage.getItem(DBX_TOKEN_KEY) || '';
-let syncTimer = null;
-let isSyncing = false;
-let lastSyncTime = null;
-let pendingSave = false;
-let syncEnabled = false;
-
-// ── UI STATE ──
-function setSyncUI(status, label, time) {
-  const dot = document.getElementById('syncDot');
-  const lbl = document.getElementById('syncLabel');
-  const timeEl = document.getElementById('syncTime');
-  const connectBtn = document.getElementById('dbxConnectBtn');
-  const disconnectBtn = document.getElementById('dbxDisconnectBtn');
-  const syncNowBtn = document.getElementById('dbxSyncNowBtn');
-
-  dot.className = 'sync-dot' + (status ? ' ' + status : '');
-  lbl.textContent = label;
-  if (time) timeEl.textContent = time;
-
-  const connected = status === 'connected' || status === 'syncing';
-  connectBtn.style.display = connected ? 'none' : 'inline-flex';
-  disconnectBtn.style.display = connected ? 'inline-flex' : 'none';
-  syncNowBtn.style.display = connected ? 'inline-flex' : 'none';
-}
-
-// ── DROPBOX API CALLS ──
-async function dbxUpload(data) {
-  const res = await fetch('https://content.dropboxapi.com/2/files/upload', {
-    method: 'POST',
-    headers: {
-      'Authorization': 'Bearer ' + dbxToken,
-      'Dropbox-API-Arg': JSON.stringify({
-        path: DBX_FILE,
-        mode: 'overwrite',
-        autorename: false,
-        mute: true
-      }),
-      'Content-Type': 'application/octet-stream'
-    },
-    body: JSON.stringify(data)
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error_summary || 'Upload failed: ' + res.status);
-  }
-  return res.json();
-}
-
-async function dbxDownload() {
-  const res = await fetch('https://content.dropboxapi.com/2/files/download', {
-    method: 'POST',
-    headers: {
-      'Authorization': 'Bearer ' + dbxToken,
-      'Dropbox-API-Arg': JSON.stringify({ path: DBX_FILE })
-    }
-  });
-  if (res.status === 409) return null; // file not found
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error_summary || 'Download failed: ' + res.status);
-  }
-  return res.json();
-}
-
-async function dbxCheckToken() {
-  const res = await fetch('https://api.dropboxapi.com/2/users/get_current_account', {
-    method: 'POST',
-    headers: { 'Authorization': 'Bearer ' + dbxToken, 'Content-Type': 'application/json' },
-    body: 'null'
-  });
-  if (!res.ok) throw new Error('Token invalid');
-  return res.json();
-}
-
-// ── CONNECT / DISCONNECT ──
-async function connectDropbox() {
-  const token = document.getElementById('dbxTokenInput').value.trim();
-  if (!token) { alert('トークンを入力してください'); return; }
-  dbxToken = token;
-
-  const statusEl = document.getElementById('dbxStatus');
-  statusEl.style.display = 'block';
-  statusEl.innerHTML = '<div style="color:var(--gray-500);font-size:12px;">🔄 接続確認中...</div>';
-
-  try {
-    const account = await dbxCheckToken();
-    localStorage.setItem(DBX_TOKEN_KEY, token);
-    syncEnabled = true;
-    statusEl.innerHTML = `<div style="color:var(--success);font-size:12px;font-weight:600;">✅ 接続成功！ ${account.name?.display_name || ''} としてログイン中</div>`;
-    setSyncUI('syncing', 'Dropbox 同期中...');
-    // Initial sync: try to load from Dropbox first
-    await initialSync();
-    setSyncUI('connected', 'Dropbox 接続済み', '接続完了');
-    startAutoSync();
-    closeModal('dbxModal');
-  } catch(e) {
-    statusEl.innerHTML = `<div style="color:var(--danger);font-size:12px;">❌ 接続失敗: ${e.message}<br>トークンを確認してください。</div>`;
-    setSyncUI('error', 'Dropbox 接続エラー');
-  }
-}
-
-function disconnectDropbox() {
-  if (!confirm('Dropbox接続を切断しますか？
-ローカルのデータは保持されます。')) return;
-  localStorage.removeItem(DBX_TOKEN_KEY);
-  dbxToken = '';
-  syncEnabled = false;
-  if (syncTimer) clearInterval(syncTimer);
-  setSyncUI('', 'Dropbox 未接続', '');
-}
-
-// ── INITIAL SYNC: merge local + remote ──
-async function initialSync() {
-  setSyncUI('syncing', 'Dropbox から読み込み中...');
-  try {
-    const remote = await dbxDownload();
-    if (remote && remote.projects) {
-      // Merge: remote wins for projects that exist in both, local-only projects are kept
-      const remoteIds = new Set(remote.projects.map(p => p.id));
-      const localOnly = state.projects.filter(p => !remoteIds.has(p.id));
-      state.projects = [...remote.projects, ...localOnly];
-      if (remote.currentId) state.currentId = remote.currentId;
-      save(); // save merged to localStorage
-      render();
-    } else {
-      // No remote file yet → upload local
-      await dbxUpload(state);
-    }
-    lastSyncTime = new Date();
-  } catch(e) {
-    console.warn('Initial sync error:', e);
-    // Upload local as fallback
-    try { await dbxUpload(state); } catch(e2) {}
-  }
-}
-
-// ── SAVE TO DROPBOX ──
-async function saveToDropbox() {
-  if (!syncEnabled || !dbxToken) return;
-  if (isSyncing) { pendingSave = true; return; }
-  isSyncing = true;
-  setSyncUI('syncing', '同期中...');
-  try {
-    await dbxUpload(state);
-    lastSyncTime = new Date();
-    const t = lastSyncTime;
-    const ts = `${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')} 保存`;
-    setSyncUI('connected', 'Dropbox 接続済み', ts);
-  } catch(e) {
-    setSyncUI('error', '同期エラー: ' + e.message.slice(0, 30));
-  } finally {
-    isSyncing = false;
-    if (pendingSave) { pendingSave = false; saveToDropbox(); }
-  }
-}
-
-// ── PULL FROM DROPBOX ──
-async function pullFromDropbox() {
-  if (!syncEnabled || !dbxToken || isSyncing) return;
-  try {
-    const remote = await dbxDownload();
-    if (!remote) return;
-    const remoteStr = JSON.stringify(remote.projects?.map(p=>({id:p.id,tasks:p.tasks?.length})));
-    const localStr = JSON.stringify(state.projects?.map(p=>({id:p.id,tasks:p.tasks?.length})));
-    if (remoteStr !== localStr) {
-      state = remote;
-      save();
-      render();
-      const t = new Date();
-      const ts = `${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')} 受信`;
-      setSyncUI('connected', 'Dropbox 接続済み', ts);
-    }
-  } catch(e) {
-    console.warn('Pull error:', e);
-  }
-}
-
-async function syncNow() {
-  if (!syncEnabled) return;
-  setSyncUI('syncing', '同期中...');
-  try {
-    await dbxUpload(state);
-    await pullFromDropbox();
-    lastSyncTime = new Date();
-    const t = lastSyncTime;
-    setSyncUI('connected', 'Dropbox 接続済み',
-      `${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')} 完了`);
-  } catch(e) {
-    setSyncUI('error', '同期エラー');
-  }
-}
-
-function startAutoSync() {
-  if (syncTimer) clearInterval(syncTimer);
-  // Pull every 30 seconds to detect changes from other devices
-  syncTimer = setInterval(pullFromDropbox, 30000);
-}
-
-function openDbxModal() {
-  document.getElementById('dbxTokenInput').value = '';
-  document.getElementById('dbxStatus').style.display = 'none';
-  openModal('dbxModal');
-}
-
-// ── HOOK INTO EXISTING save() ──
-const _origSave = save;
-window.save = function() {
-  _origSave();
-  // Debounce: upload 1.5s after last change
-  if (syncEnabled) {
-    clearTimeout(window._saveDebounce);
-    window._saveDebounce = setTimeout(saveToDropbox, 1500);
-  }
-};
-
-// ── INIT DROPBOX ON LOAD ──
-async function initDropbox() {
-  if (!dbxToken) {
-    setSyncUI('', 'Dropbox 未接続', '');
-    return;
-  }
-  setSyncUI('syncing', 'Dropbox 接続確認中...');
-  try {
-    await dbxCheckToken();
-    syncEnabled = true;
-    setSyncUI('syncing', 'Dropbox 同期中...');
-    await initialSync();
-    setSyncUI('connected', 'Dropbox 接続済み', '接続済み');
-    startAutoSync();
-  } catch(e) {
-    setSyncUI('error', 'Dropbox 再接続が必要');
-    localStorage.removeItem(DBX_TOKEN_KEY);
-    dbxToken = '';
-  }
-}
-
-// Run after app loads
-window.addEventListener('load', () => {
-  setTimeout(initDropbox, 300);
-});
-
-// Sync before page unload
-window.addEventListener('beforeunload', () => {
-  if (syncEnabled && dbxToken) {
-    navigator.sendBeacon && navigator.sendBeacon('https://content.dropboxapi.com/2/files/upload');
-    // Best effort: also call saveToDropbox
-    saveToDropbox();
-  }
-});
-
-// Sync when tab becomes visible again (returning from background on iPhone)
-document.addEventListener('visibilitychange', () => {
-  if (!document.hidden && syncEnabled) {
-    pullFromDropbox();
-  }
-});
-</script>
 
 </body>
 </html>
