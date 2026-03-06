@@ -281,6 +281,22 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--gray-50);color:var(-
   #printHeader{display:block !important;}
 }
 
+/* ── SORT & DRAG ── */
+.sort-bar{display:flex;align-items:center;gap:5px;padding:4px 12px;background:var(--gray-50);
+  border-bottom:1px solid var(--gray-100);flex-shrink:0;}
+.sort-lbl{font-size:9px;font-weight:600;color:var(--gray-400);text-transform:uppercase;letter-spacing:.5px;margin-right:2px;}
+.sort-btn{padding:3px 8px;border-radius:4px;font-size:10px;font-weight:600;cursor:pointer;border:1px solid var(--gray-200);
+  background:#fff;color:var(--gray-600);font-family:inherit;transition:.12s;display:flex;align-items:center;gap:3px;}
+.sort-btn:hover{border-color:var(--accent);color:var(--accent);}
+.sort-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+.drag-handle{width:14px;display:flex;flex-direction:column;gap:2px;cursor:grab;flex-shrink:0;
+  opacity:0;transition:.15s;padding:2px 0;}
+.drag-handle span{display:block;width:10px;height:2px;background:var(--gray-300);border-radius:1px;}
+.tr-left:hover .drag-handle{opacity:1;}
+.tr-left.dragging{opacity:.4;background:var(--accent-light);}
+.tr-left.drag-over{border-top:2px solid var(--accent);}
+
+
 /* ── DROPBOX BAR ── */
 .dbx-bar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--gray-200);
   padding:6px 16px;display:flex;align-items:center;gap:10px;z-index:500;
@@ -521,6 +537,8 @@ let selColor=COLORS[0];
 let currentScale='day';
 let selDows=new Set([1,2,3,4,5]); // Mon-Fri default
 let state={projects:[],currentId:null};
+let sortMode = 'manual'; // 'manual'|'start'|'end'|'assignee'|'name'
+
 
 function load(){try{const s=localStorage.getItem('pmchart6');if(s)state=JSON.parse(s);}catch(e){}}
 function save(){localStorage.setItem('pmchart6',JSON.stringify(state));}
@@ -950,6 +968,68 @@ function deleteTaskDirect(id){const p=proj();if(!p)return;if(!confirm('このタ
 // ══════════════════════════════════════════════
 // RENDER
 // ══════════════════════════════════════════════
+
+// ══ SORT & DRAG ══
+function getSortedTasks(tasks) {
+  if (sortMode === 'manual') return [...tasks];
+  const arr = [...tasks];
+  const p = proj();
+  if (sortMode === 'start')    arr.sort((a,b) => a.start.localeCompare(b.start));
+  if (sortMode === 'end')      arr.sort((a,b) => a.end.localeCompare(b.end));
+  if (sortMode === 'name')     arr.sort((a,b) => a.name.localeCompare(b.name, 'ja'));
+  if (sortMode === 'assignee') arr.sort((a,b) => {
+    const ma = p.members.find(m=>m.id===a.assigneeId);
+    const mb = p.members.find(m=>m.id===b.assigneeId);
+    return (ma?ma.name:'').localeCompare(mb?mb.name:'', 'ja');
+  });
+  return arr;
+}
+function setSort(mode) {
+  sortMode = sortMode === mode ? 'manual' : mode;
+  renderMain();
+}
+
+// Drag & Drop
+let _dragId = null;
+let _dragOverId = null;
+function onDragStart(e, id) {
+  _dragId = id;
+  e.dataTransfer.effectAllowed = 'move';
+  setTimeout(() => {
+    const el = document.querySelector('[data-taskid="'+id+'"]');
+    if (el) el.classList.add('dragging');
+  }, 0);
+}
+function onDragOver(e, id) {
+  e.preventDefault();
+  if (id === _dragId) return;
+  if (_dragOverId !== id) {
+    document.querySelectorAll('.tr-left').forEach(el => el.classList.remove('drag-over'));
+    const el = document.querySelector('[data-taskid="'+id+'"]');
+    if (el) el.classList.add('drag-over');
+    _dragOverId = id;
+  }
+}
+function onDrop(e, id) {
+  e.preventDefault();
+  if (!_dragId || _dragId === id) return;
+  const p = proj(); if (!p) return;
+  const fromIdx = p.tasks.findIndex(t => t.id === _dragId);
+  const toIdx   = p.tasks.findIndex(t => t.id === id);
+  if (fromIdx < 0 || toIdx < 0) return;
+  const moved = p.tasks.splice(fromIdx, 1)[0];
+  p.tasks.splice(toIdx, 0, moved);
+  sortMode = 'manual';
+  save(); render();
+}
+function onDragEnd() {
+  _dragId = null; _dragOverId = null;
+  document.querySelectorAll('.tr-left').forEach(el => {
+    el.classList.remove('dragging');
+    el.classList.remove('drag-over');
+  });
+}
+
 function render(){
   const p=proj();
   document.getElementById('selProjName').textContent=p?p.name:'プロジェクトを選択';
@@ -1043,8 +1123,9 @@ function renderMain(){
   });
 
   // ── TASK ROWS ──
-  const normalTasks=p.tasks.filter(t=>!t.recur);
-  const recurTasks=p.tasks.filter(t=>t.recur);
+  const allSorted=getSortedTasks(p.tasks);
+  const normalTasks=allSorted.filter(t=>!t.recur);
+  const recurTasks=allSorted.filter(t=>t.recur);
 
   let leftTasks='';
   let rightBars='';
@@ -1057,7 +1138,16 @@ function renderMain(){
     const totalH=recurTotalHours(t);
 
     // LEFT
-    leftTasks+=`<div class="tr-left${isRecur?' recur-row':''}" onclick="openEditTask('${t.id}')">
+    const isDraggable = sortMode === 'manual';
+    leftTasks+=`<div class="tr-left${isRecur?' recur-row':''}"
+      data-taskid="${t.id}"
+      draggable="${isDraggable}"
+      onclick="openEditTask('${t.id}')"
+      ondragstart="onDragStart(event,'${t.id}')"
+      ondragover="onDragOver(event,'${t.id}')"
+      ondrop="onDrop(event,'${t.id}')"
+      ondragend="onDragEnd()">
+      ${isDraggable?`<div class="drag-handle" onclick="event.stopPropagation()"><span></span><span></span><span></span></div>`:''}
       <div class="tdot" style="background:${isRecur?'var(--recur)':col}"></div>
       <div class="tncell">${t.name}</div>
       ${m?`<div class="tchip" style="background:${col}">${m.name.charAt(0)}</div>`:''}
@@ -1133,7 +1223,13 @@ function renderMain(){
       ${recurCount?`<span class="recur-badge">🔁 定期 ${recurCount}件</span>`:''}
       ${p.milestones&&p.milestones.length?`<span class="ms-badge">🚩 ${p.milestones.length}件</span>`:''}
     </div>
-    <div style="display:flex;gap:6px;">
+    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+      <span class="sort-lbl">並び替え:</span>
+      <button class="sort-btn ${sortMode==='start'?'active':''}" onclick="setSort('start')">📅 開始日</button>
+      <button class="sort-btn ${sortMode==='end'?'active':''}" onclick="setSort('end')">🏁 終了日</button>
+      <button class="sort-btn ${sortMode==='assignee'?'active':''}" onclick="setSort('assignee')">👤 担当者</button>
+      <button class="sort-btn ${sortMode==='name'?'active':''}" onclick="setSort('name')">🔤 名前</button>
+      <div style="width:1px;height:16px;background:var(--gray-200);"></div>
       <button class="btn btn-outline btn-sm" onclick="openEditProject()">✏️ 期間</button>
       <button class="btn btn-outline btn-sm" onclick="openMilestoneModal()">🚩 MS</button>
       <button class="btn btn-primary btn-sm" onclick="openAddTask(false)">＋ タスク</button>
@@ -1325,7 +1421,6 @@ document.addEventListener('click',()=>document.getElementById('projDrop').style.
 load();render();
 </script>
 
-<!-- DROPBOX BAR -->
 <div class="dbx-bar">
   <div class="dbx-dot" id="dbxDot"></div>
   <span class="dbx-status" id="dbxStatus">Dropbox未接続</span>
@@ -1334,8 +1429,6 @@ load();render();
   <button class="dbx-btn dbx-btn-disc" id="dbxDiscBtn" style="display:none">切断</button>
   <button class="dbx-btn dbx-btn-connect" id="dbxConnBtn">☁ Dropbox接続</button>
 </div>
-
-<!-- DROPBOX MODAL -->
 <div class="modal-overlay" id="dbxModal">
   <div class="modal modal-lg">
     <div class="modal-hdr">
@@ -1348,7 +1441,7 @@ load();render();
         <div class="dbx-step"><div class="dbx-num">1</div><div><a href="https://www.dropbox.com/developers/apps" target="_blank" style="color:var(--accent)">Dropbox Developers</a> を開いて「Create app」をクリック</div></div>
         <div class="dbx-step"><div class="dbx-num">2</div><div>「Scoped access」→「App folder」→ App名を入力（例: PMChart）→「Create app」</div></div>
         <div class="dbx-step"><div class="dbx-num">3</div><div>「Permissions」タブ → <strong>files.content.write</strong> と <strong>files.content.read</strong> にチェック → 「Submit」</div></div>
-        <div class="dbx-step"><div class="dbx-num">4</div><div>「Settings」タブ → 「OAuth 2」セクション → 「Generated access token」の「<strong>Generate</strong>」ボタンをクリック</div></div>
+        <div class="dbx-step"><div class="dbx-num">4</div><div>「Settings」タブ → 「OAuth 2」→「Generated access token」の「<strong>Generate</strong>」をクリック</div></div>
         <div class="dbx-step"><div class="dbx-num">5</div><div>生成されたトークンをコピーして下に貼り付け</div></div>
       </div>
       <div class="fg" style="margin-top:8px;">
@@ -1358,8 +1451,7 @@ load();render();
       <div id="dbxMsg" style="font-size:12px;padding:6px 0;display:none;"></div>
       <div class="dbx-note">
         💡 データは <code style="background:rgba(0,0,0,.06);padding:1px 5px;border-radius:3px;">/Apps/PMChart/pmchart-data.json</code> に保存されます。<br>
-        iPhone・PCどちらで開いても同じデータが同期されます。<br>
-        ⚠️ トークンはこのデバイスにのみ保存。複数デバイスで使う場合は各デバイスで設定してください。
+        iPhone・PCどちらで開いても同じデータが同期されます。
       </div>
     </div>
     <div class="modal-footer">
@@ -1371,7 +1463,6 @@ load();render();
 
 
 <script>
-// ══ DROPBOX SYNC ══
 var DBX_KEY = 'pmchart_dbx_v3';
 var DBX_PATH = '/pmchart-data.json';
 var _dbxToken = localStorage.getItem(DBX_KEY) || '';
@@ -1397,7 +1488,6 @@ function _dbxMsg(msg, color) {
   el.style.color = color || 'var(--gray-500)';
   el.textContent = msg;
 }
-
 async function _dbxWhoami() {
   var r = await fetch('https://api.dropboxapi.com/2/users/get_current_account', {
     method: 'POST',
@@ -1431,7 +1521,6 @@ async function _dbxDownload() {
   if (!r.ok) throw new Error(r.status + '');
   return r.json();
 }
-
 async function _dbxInitialSync() {
   try {
     var remote = await _dbxDownload();
@@ -1449,7 +1538,6 @@ async function _dbxInitialSync() {
     try { await _dbxUpload(); } catch(e2) {}
   }
 }
-
 async function dbxSubmit() {
   var token = document.getElementById('dbxTokenInput').value.trim();
   if (!token) { alert('トークンを入力してください'); return; }
@@ -1463,8 +1551,7 @@ async function dbxSubmit() {
     _dbxDot('syncing', '同期中...');
     await _dbxInitialSync();
     var now = new Date();
-    var ts = ('0'+now.getHours()).slice(-2) + ':' + ('0'+now.getMinutes()).slice(-2);
-    _dbxDot('ok', 'Dropbox同期済み ' + ts);
+    _dbxDot('ok', 'Dropbox同期済み ' + ('0'+now.getHours()).slice(-2) + ':' + ('0'+now.getMinutes()).slice(-2));
     _dbxButtons(true);
     _dbxStartTimer();
     setTimeout(function() { closeModal('dbxModal'); }, 1200);
@@ -1474,7 +1561,6 @@ async function dbxSubmit() {
     _dbxDot('error', '接続エラー');
   }
 }
-
 function dbxDisconnect() {
   if (!confirm('Dropbox接続を切断しますか？ローカルのデータは保持されます。')) return;
   localStorage.removeItem(DBX_KEY);
@@ -1483,7 +1569,6 @@ function dbxDisconnect() {
   _dbxDot('', 'Dropbox未接続');
   _dbxButtons(false);
 }
-
 async function dbxSyncNow() {
   if (!_dbxEnabled || _dbxBusy) return;
   _dbxBusy = true;
@@ -1497,12 +1582,10 @@ async function dbxSyncNow() {
       if (rs !== ls) { state = remote; localStorage.setItem('pmchart6', JSON.stringify(state)); render(); }
     }
     var now = new Date();
-    var ts = ('0'+now.getHours()).slice(-2) + ':' + ('0'+now.getMinutes()).slice(-2);
-    _dbxDot('ok', '同期完了 ' + ts);
+    _dbxDot('ok', '同期完了 ' + ('0'+now.getHours()).slice(-2) + ':' + ('0'+now.getMinutes()).slice(-2));
   } catch(e) { _dbxDot('error', '同期エラー: ' + e.message.slice(0,20)); }
   finally { _dbxBusy = false; }
 }
-
 async function _dbxPull() {
   if (!_dbxEnabled || _dbxBusy) return;
   try {
@@ -1519,12 +1602,10 @@ async function _dbxPull() {
     }
   } catch(e) {}
 }
-
 function _dbxStartTimer() {
   if (_dbxTimer) clearInterval(_dbxTimer);
   _dbxTimer = setInterval(_dbxPull, 30000);
 }
-
 var _origSave = save;
 window.save = function() {
   _origSave();
@@ -1539,11 +1620,9 @@ window.save = function() {
     }, 1500);
   }
 };
-
 document.addEventListener('visibilitychange', function() {
   if (!document.hidden && _dbxEnabled) _dbxPull();
 });
-
 async function _dbxInit() {
   if (!_dbxToken) { _dbxDot('', 'Dropbox未接続'); _dbxButtons(false); return; }
   _dbxDot('syncing', 'Dropbox確認中...');
@@ -1561,7 +1640,6 @@ async function _dbxInit() {
     _dbxButtons(false);
   }
 }
-
 document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('dbxConnBtn').addEventListener('click', function() { openModal('dbxModal'); });
   document.getElementById('dbxSyncBtn').addEventListener('click', dbxSyncNow);
@@ -1571,7 +1649,6 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('dbxSubmitBtn').addEventListener('click', dbxSubmit);
   setTimeout(_dbxInit, 300);
 });
-
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
     navigator.serviceWorker.register('./sw.js').catch(function(e) { console.log('SW:', e); });
