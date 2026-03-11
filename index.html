@@ -257,6 +257,49 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--gray-50);color:var(-
 .act-bar{position:absolute;height:8px !important;top:33px !important;border-radius:2px;opacity:.55;border:2px solid rgba(255,255,255,.5);}
 .tr-right{height:42px;position:relative;border-bottom:1px solid var(--gray-100);}
 
+
+/* ── TODO VIEW ── */
+.todo-wrap{flex:1;overflow:auto;padding:16px 20px;}
+.todo-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;}
+.todo-title{font-size:16px;font-weight:700;color:var(--gray-800);}
+.todo-filter-bar{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+.todo-filter-btn{padding:4px 10px;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;
+  border:1px solid var(--gray-200);background:#fff;color:var(--gray-600);font-family:inherit;transition:.12s;}
+.todo-filter-btn:hover{border-color:var(--accent);color:var(--accent);}
+.todo-filter-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+.todo-section{margin-bottom:18px;}
+.todo-section-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;
+  color:var(--gray-400);margin-bottom:6px;padding:0 2px;}
+.todo-item{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;background:#fff;
+  border-radius:8px;border:1px solid var(--gray-200);margin-bottom:5px;transition:.15s;cursor:pointer;}
+.todo-item:hover{border-color:var(--accent);box-shadow:var(--sh-sm);}
+.todo-item.done{opacity:.5;background:var(--gray-50);}
+.todo-item.done .todo-name{text-decoration:line-through;color:var(--gray-400);}
+.todo-item.overdue{border-left:3px solid var(--danger);}
+.todo-item.today{border-left:3px solid var(--accent);}
+.todo-check{width:18px;height:18px;border-radius:4px;border:2px solid var(--gray-300);
+  flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer;
+  transition:.15s;margin-top:1px;background:#fff;}
+.todo-check:hover{border-color:var(--success);}
+.todo-check.checked{background:var(--success);border-color:var(--success);}
+.todo-check.checked::after{content:'✓';color:#fff;font-size:11px;font-weight:700;line-height:1;}
+.todo-body{flex:1;min-width:0;}
+.todo-name{font-size:12px;font-weight:600;color:var(--gray-800);margin-bottom:3px;}
+.todo-meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.todo-date{font-size:10px;color:var(--gray-500);font-family:'DM Mono',monospace;}
+.todo-date.overdue{color:var(--danger);font-weight:600;}
+.todo-date.today{color:var(--accent);font-weight:600;}
+.todo-pj{font-size:10px;color:var(--gray-400);background:var(--gray-100);
+  padding:1px 6px;border-radius:4px;}
+.todo-assignee{display:flex;align-items:center;gap:3px;font-size:10px;color:var(--gray-500);}
+.todo-av{width:14px;height:14px;border-radius:50%;display:inline-flex;align-items:center;
+  justify-content:center;font-size:7px;font-weight:700;color:#fff;}
+.todo-recur-tag{font-size:9px;font-weight:600;color:var(--recur);background:var(--recur-light);
+  padding:1px 5px;border-radius:4px;}
+.todo-est{font-size:10px;color:var(--gray-400);}
+.todo-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:60px;color:var(--gray-400);gap:8px;text-align:center;}
+
 /* SORT & DRAG */
 .sort-btn{padding:3px 8px;border-radius:4px;font-size:10px;font-weight:600;cursor:pointer;border:1px solid var(--gray-200);
   background:#fff;color:var(--gray-600);font-family:inherit;transition:.12s;display:inline-flex;align-items:center;gap:3px;}
@@ -339,9 +382,7 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--gray-50);color:var(-
   #printHeader{display:block !important;}
 }
 
-.dbx-bar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--gray-200);
-  padding:6px 16px;display:flex;align-items:center;gap:10px;z-index:500;
-  box-shadow:0 -2px 12px rgba(0,0,0,.07);font-size:11px;}
+.dbx-bar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--gray-200);padding:6px 16px;display:flex;align-items:center;gap:10px;z-index:500;box-shadow:0 -2px 12px rgba(0,0,0,.07);font-size:11px;}
 .dbx-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;transition:.3s;background:#9ca3af;}
 .dbx-dot.ok{background:#059669;}.dbx-dot.syncing{background:#d97706;animation:dbxpulse .8s infinite alternate;}.dbx-dot.error{background:#dc2626;}
 @keyframes dbxpulse{from{opacity:1;}to{opacity:.3;}}
@@ -371,6 +412,7 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--gray-50);color:var(-
   <div class="topbar-r">
     <div class="view-tabs">
       <button class="view-tab active" id="tabGantt" onclick="switchView('gantt')">📊 ガントチャート</button>
+      <button class="view-tab" id="tabTodo" onclick="switchView('todo')">✅ ToDoリスト</button>
       <button class="view-tab" id="tabDash" onclick="switchView('dashboard')">👥 メンバービュー</button>
     </div>
     <div style="width:1px;height:18px;background:var(--gray-200);margin:0 2px;"></div>
@@ -712,10 +754,12 @@ function recurPatternLabel(task){
 function switchView(v){
   currentView=v;
   document.getElementById('tabGantt').classList.toggle('active',v==='gantt');
+  document.getElementById('tabTodo').classList.toggle('active',v==='todo');
   document.getElementById('tabDash').classList.toggle('active',v==='dashboard');
   document.getElementById('scaleTabs').style.display=v==='gantt'?'flex':'none';
   document.getElementById('sidebarEl').style.display=v==='gantt'?'flex':'none';
   if(v==='gantt')renderGanttView();
+  else if(v==='todo')renderTodoView();
   else renderDashboardView();
 }
 
@@ -1227,6 +1271,7 @@ function onDragEnd(){_dragId=null;_dragOverId=null;document.querySelectorAll('.t
 // ══════════════════════════════════════════════
 function render(){
   if(currentView==='dashboard')renderDashboardView();
+  else if(currentView==='todo')renderTodoView();
   else renderGanttView();
 }
 
@@ -1354,7 +1399,7 @@ function renderMain(){
   let msLinesHtml='';
   (p.milestones||[]).forEach(ms=>{
     if(ms.date>=p.start&&ms.date<=p.end){
-      const x=dateToX(ms.date,p);
+      const x=dateToX(ms.date,p)+colWidth()/2;
       msLinesHtml+=`<div class="ms-line" style="left:${x}px;">
         <div class="ms-line-lbl">${ms.name}</div>
         <div class="ms-diamond"></div>
@@ -1552,6 +1597,150 @@ function buildMonthlySummary(p,tw){
       </tbody>
     </table>
   </div>`;
+}
+
+
+// ══════════════════════════════════════════════
+// TODO VIEW
+// ══════════════════════════════════════════════
+let todoFilter='all'; // 'all'|'active'|'done'|'overdue'
+let todoSort='start'; // 'start'|'end'|'assignee'|'name'
+
+function toggleTaskDone(pjId, taskId, e){
+  e.stopPropagation();
+  const pj=state.projects.find(p=>p.id===pjId);
+  if(!pj)return;
+  const t=pj.tasks.find(x=>x.id===taskId);
+  if(!t)return;
+  t.done=!t.done;
+  save();
+  renderTodoView();
+}
+
+function renderTodoView(){
+  const mc=document.getElementById('mainContent');
+  const td=today();
+
+  // Collect tasks from current project or all projects
+  const allItems=[];
+  const targetProjects=proj()?[proj()]:state.projects;
+  targetProjects.forEach(pj=>{
+    (pj.tasks||[]).forEach(t=>{
+      allItems.push({t,pj});
+    });
+  });
+
+  // Sort by start date
+  // Sort
+  allItems.sort((a,b)=>{
+    if(todoSort==='start') return a.t.start.localeCompare(b.t.start);
+    if(todoSort==='end')   return a.t.end.localeCompare(b.t.end);
+    if(todoSort==='name')  return a.t.name.localeCompare(b.t.name,'ja');
+    if(todoSort==='assignee'){
+      const ma=getMember(a.t.assigneeId); const mb=getMember(b.t.assigneeId);
+      return (ma?ma.name:'').localeCompare(mb?mb.name:'','ja');
+    }
+    return 0;
+  });
+
+  // Apply filter
+  const filtered=allItems.filter(({t})=>{
+    if(todoFilter==='active')return !t.done;
+    if(todoFilter==='done')return !!t.done;
+    if(todoFilter==='overdue')return !t.done&&t.end<td;
+    return true;
+  });
+
+  const doneCount=allItems.filter(({t})=>t.done).length;
+  const overdueCount=allItems.filter(({t})=>!t.done&&t.end<td).length;
+  const showAllProjects=!proj();
+
+  // Group: overdue / today&upcoming / done
+  const overdue=filtered.filter(({t})=>!t.done&&t.end<td);
+  const active=filtered.filter(({t})=>!t.done&&t.end>=td);
+  const done=filtered.filter(({t})=>t.done);
+
+  function itemHtml({t,pj}){
+    const m=getMember(t.assigneeId);
+    const recurMembers=(t.assigneeIds&&t.assigneeIds.length)?t.assigneeIds.map(id=>getMember(id)).filter(Boolean):[];
+    const isOverdue=!t.done&&t.end<td;
+    const isToday=!t.done&&(t.start<=td&&t.end>=td);
+    const totalH=recurTotalHours(t);
+    const assigneeHtml=t.recur&&recurMembers.length
+      ?`<div class="todo-assignee">${recurMembers.map(rm=>`<div class="todo-av" style="background:${rm.color}">${rm.name.charAt(0)}</div>`).join('')}<span>${recurMembers.map(rm=>rm.name).join('・')}</span></div>`
+      :(m?`<div class="todo-assignee"><div class="todo-av" style="background:${m.color}">${m.name.charAt(0)}</div><span>${m.name}</span></div>`:'');
+    return `<div class="todo-item${t.done?' done':''}${isOverdue?' overdue':isToday?' today':''}"
+      onclick="openEditTaskInProject('${pj.id}','${t.id}')">
+      <div class="todo-check${t.done?' checked':''}" onclick="toggleTaskDone('${pj.id}','${t.id}',event)"></div>
+      <div class="todo-body">
+        <div class="todo-name">${t.name}</div>
+        <div class="todo-meta">
+          <span class="todo-date${isOverdue?' overdue':isToday?' today':''}">${t.start} 〜 ${t.end}</span>
+          ${showAllProjects?`<span class="todo-pj">${pj.name}</span>`:''}
+          ${assigneeHtml}
+          ${t.recur?`<span class="todo-recur-tag">🔁 ${recurPatternLabel(t)}</span>`:''}
+          ${totalH?`<span class="todo-est">⏱ ${Math.round(totalH*10)/10}h</span>`:''}
+        </div>
+      </div>
+    </div>`;
+  }
+
+  function section(title,items,emptyMsg){
+    if(!items.length)return'';
+    return `<div class="todo-section">
+      <div class="todo-section-title">${title} (${items.length})</div>
+      ${items.map(itemHtml).join('')}
+    </div>`;
+  }
+
+  const hasAny=filtered.length>0;
+
+  mc.innerHTML=`<div class="todo-wrap">
+    <div class="todo-header">
+      <div>
+        <div class="todo-title">✅ ToDoリスト</div>
+        <div style="font-size:11px;color:var(--gray-500);margin-top:2px;">
+          ${allItems.length}件${overdueCount?` <span style="color:var(--danger);font-weight:600;">/ 期限超過 ${overdueCount}件</span>`:''}
+          ${doneCount?` / 完了 ${doneCount}件`:''}
+        </div>
+      </div>
+      <div class="todo-filter-bar">
+        <span style="font-size:9px;font-weight:600;color:var(--gray-400);text-transform:uppercase;letter-spacing:.5px;">絞り込み:</span>
+        <button class="todo-filter-btn${todoFilter==='all'?' active':''}" onclick="setTodoFilter('all')">すべて</button>
+        <button class="todo-filter-btn${todoFilter==='active'?' active':''}" onclick="setTodoFilter('active')">未完了</button>
+        <button class="todo-filter-btn${todoFilter==='overdue'?' active':''}" onclick="setTodoFilter('overdue')" style="${overdueCount?'color:var(--danger);border-color:var(--danger);':''}">期限超過${overdueCount?' ('+overdueCount+')':''}</button>
+        <button class="todo-filter-btn${todoFilter==='done'?' active':''}" onclick="setTodoFilter('done')">完了済み</button>
+        <div style="width:1px;height:16px;background:var(--gray-200);"></div>
+        <span style="font-size:9px;font-weight:600;color:var(--gray-400);text-transform:uppercase;letter-spacing:.5px;">並び替え:</span>
+        <button class="todo-filter-btn${todoSort==='start'?' active':''}" onclick="setTodoSort('start')">📅 開始日</button>
+        <button class="todo-filter-btn${todoSort==='end'?' active':''}" onclick="setTodoSort('end')">🏁 終了日</button>
+        <button class="todo-filter-btn${todoSort==='assignee'?' active':''}" onclick="setTodoSort('assignee')">👤 担当者</button>
+        <button class="todo-filter-btn${todoSort==='name'?' active':''}" onclick="setTodoSort('name')">🔤 名前</button>
+        <div style="width:1px;height:16px;background:var(--gray-200);"></div>
+        <button class="btn btn-primary btn-sm" onclick="openAddTask(false)">＋ タスク</button>
+      </div>
+    </div>
+    ${hasAny
+      ?(section('🔴 期限超過',overdue,'')+section('📋 進行中・予定',active,'')+section('✅ 完了',done,''))
+      :`<div class="todo-empty"><div style="font-size:36px;">✅</div><div style="font-size:12px;">タスクがありません</div></div>`
+    }
+  </div>`;
+}
+
+function setTodoFilter(f){
+  todoFilter=f;
+  renderTodoView();
+}
+function setTodoSort(s){
+  todoSort=s;
+  renderTodoView();
+}
+
+function openEditTaskInProject(pjId, taskId){
+  state.currentId=pjId;
+  save();
+  switchView('gantt');
+  setTimeout(()=>openEditTask(taskId),50);
 }
 
 // ══════════════════════════════════════════════
@@ -1813,10 +2002,7 @@ window.addEventListener('afterprint', function() {
 </div>
 <div class="modal-overlay" id="dbxModal">
   <div class="modal modal-lg">
-    <div class="modal-hdr">
-      <span class="modal-title">☁ Dropbox接続設定</span>
-      <button class="btn btn-ghost" id="dbxModalCloseBtn">✕</button>
-    </div>
+    <div class="modal-hdr"><span class="modal-title">☁ Dropbox接続設定</span><button class="btn btn-ghost" id="dbxModalCloseBtn">✕</button></div>
     <div class="modal-body">
       <div class="dbx-steps">
         <div style="font-size:12px;font-weight:700;color:#1e40af;margin-bottom:2px;">📋 セットアップ手順（約3分）</div>
@@ -1826,10 +2012,8 @@ window.addEventListener('afterprint', function() {
         <div class="dbx-step"><div class="dbx-num">4</div><div>「Settings」タブ → 「OAuth 2」→「Generated access token」の「<strong>Generate</strong>」をクリック</div></div>
         <div class="dbx-step"><div class="dbx-num">5</div><div>生成されたトークンをコピーして下に貼り付け</div></div>
       </div>
-      <div class="fg" style="margin-top:8px;">
-        <label class="flabel">アクセストークン</label>
-        <input class="finput" type="password" id="dbxTokenInput" placeholder="sl.xxxxxxxxxxxxxxxxxxxxxxxx...">
-      </div>
+      <div class="fg" style="margin-top:8px;"><label class="flabel">アクセストークン</label>
+        <input class="finput" type="password" id="dbxTokenInput" placeholder="sl.xxxxxxxxxxxxxxxxxxxxxxxx..."></div>
       <div id="dbxMsg" style="font-size:12px;padding:6px 0;display:none;"></div>
       <div class="dbx-note">💡 データは <code style="background:rgba(0,0,0,.06);padding:1px 5px;border-radius:3px;">/Apps/PMChart/pmchart-data.json</code> に保存されます。</div>
     </div>
