@@ -216,6 +216,17 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--gray-50);color:var(-
 .chip-edit{background:none;border:none;cursor:pointer;color:var(--gray-400);font-size:10px;padding:0 1px;}
 .chip-edit:hover{color:var(--accent);}
 
+/* MULTI-ASSIGNEE for recur tasks */
+.assignee-grid{display:flex;flex-wrap:wrap;gap:6px;padding:4px 0;}
+.asgn-chip{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;
+  border:2px solid var(--gray-200);cursor:pointer;font-size:11px;font-weight:500;
+  color:var(--gray-600);background:#fff;transition:.15s;user-select:none;}
+.asgn-chip:hover{border-color:var(--recur);color:var(--recur);}
+.asgn-chip.sel{border-color:var(--recur);background:var(--recur-light);color:#6d28d9;}
+.asgn-chip .av-xs{width:18px;height:18px;border-radius:50%;display:inline-flex;align-items:center;
+  justify-content:center;font-size:8px;font-weight:700;color:#fff;flex-shrink:0;}
+.multi-chips{display:flex;gap:2px;flex-wrap:nowrap;overflow:hidden;}
+
 /* INFO BOX */
 .info-box{background:var(--gray-50);border:1px solid var(--gray-200);border-radius:6px;padding:10px 12px;font-size:11px;color:var(--gray-600);line-height:1.6;}
 .info-box strong{color:var(--gray-800);}
@@ -328,7 +339,6 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--gray-50);color:var(-
   #printHeader{display:block !important;}
 }
 
-/* ── DROPBOX BAR ── */
 .dbx-bar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--gray-200);
   padding:6px 16px;display:flex;align-items:center;gap:10px;z-index:500;
   box-shadow:0 -2px 12px rgba(0,0,0,.07);font-size:11px;}
@@ -551,8 +561,13 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--gray-50);color:var(-
         </div>
         <div style="font-size:10px;color:var(--success);opacity:.8;">入力するとガントチャートに実績バーが表示されます</div>
       </div>
-      <div class="fg"><label class="flabel">担当者</label>
+      <!-- Single assignee (normal tasks) -->
+      <div class="fg" id="assigneeSingleWrap"><label class="flabel">担当者</label>
         <select class="fselect" id="tAssignee"><option value="">担当者を選択</option></select></div>
+      <!-- Multi assignee (recur tasks) -->
+      <div class="fg" id="assigneeMultiWrap" style="display:none;"><label class="flabel">参加者（複数選択可）</label>
+        <div class="assignee-grid" id="assigneeGrid"></div>
+      </div>
       <div id="recurPanel" class="recur-panel" style="display:none;">
         <div class="recur-panel-title">🔁 繰り返し設定</div>
         <div class="fg">
@@ -899,7 +914,7 @@ function deleteGlobalMember(id){
   state.members=state.members.filter(x=>x.id!==id);
   state.projects.forEach(p=>{
     p.memberIds=(p.memberIds||[]).filter(x=>x!==id);
-    p.tasks.forEach(t=>{if(t.assigneeId===id)t.assigneeId='';});
+    p.tasks.forEach(t=>{if(t.assigneeId===id)t.assigneeId='';if(t.assigneeIds)t.assigneeIds=t.assigneeIds.filter(x=>x!==id);});
   });
   renderGlobalMemberChips();
   save();render();
@@ -1039,7 +1054,9 @@ function toggleRecurUI(){
   document.getElementById('tEndLabel').textContent=isRecur?'繰り返し終了日':'終了日';
   document.getElementById('tEstLabel').textContent=isRecur?'予想工数（自動計算）':'予想工数（時間）';
   document.getElementById('tEst').readOnly=isRecur;
-  if(isRecur){initDowGrid();onPatternChange();updateRecurInfoBox();}
+  document.getElementById('assigneeSingleWrap').style.display=isRecur?'none':'flex';
+  document.getElementById('assigneeMultiWrap').style.display=isRecur?'flex':'none';
+  if(isRecur){renderAssigneeGrid([]);initDowGrid();onPatternChange();updateRecurInfoBox();}
 }
 function onPatternChange(){
   const p=document.getElementById('rPattern').value;
@@ -1066,6 +1083,22 @@ function updateRecurInfoBox(){
 // ══════════════════════════════════════════════
 // TASK
 // ══════════════════════════════════════════════
+function renderAssigneeGrid(selectedIds){
+  const p=proj();
+  const grid=document.getElementById('assigneeGrid');
+  if(!grid)return;
+  const members=getProjMembers(p);
+  if(!members.length){grid.innerHTML='<div style="font-size:11px;color:var(--gray-400);">メンバーがいません</div>';return;}
+  grid.innerHTML=members.map(m=>{
+    const sel=selectedIds.includes(m.id);
+    return `<div class="asgn-chip${sel?' sel':''}" data-mid="${m.id}" onclick="this.classList.toggle('sel')">
+      <span class="av-xs" style="background:${m.color}">${m.name.charAt(0)}</span>${m.name}
+    </div>`;
+  }).join('');
+}
+function getSelectedAssigneeIds(){
+  return [...document.querySelectorAll('#assigneeGrid .asgn-chip.sel')].map(el=>el.dataset.mid);
+}
 function fillAssignee(sel,selectedId){
   const p=proj();
   sel.innerHTML='<option value="">担当者を選択</option>';
@@ -1092,6 +1125,7 @@ function openAddTask(forceRecur=false){
   document.getElementById('tRecurChk').checked=forceRecur;
   selDows=new Set([1,2,3,4,5]);
   fillAssignee(document.getElementById('tAssignee'),'');
+  renderAssigneeGrid([]);
   toggleRecurUI();
   openModal('taskModal');
 }
@@ -1117,6 +1151,7 @@ function openEditTask(id){
     document.getElementById('rPerOcc').value=t.recur.perOcc||1;
   }
   fillAssignee(document.getElementById('tAssignee'),t.assigneeId||'');
+  renderAssigneeGrid(t.assigneeIds||[]);
   toggleRecurUI();
   openModal('taskModal');
 }
@@ -1130,6 +1165,7 @@ function saveTask(){
   const actStart=document.getElementById('tActStart').value;
   const actEnd=document.getElementById('tActEnd').value;
   const assigneeId=document.getElementById('tAssignee').value;
+  const assigneeIds=isRecur?getSelectedAssigneeIds():[];
   const editId=document.getElementById('tEditId').value;
   const isRecur=document.getElementById('tRecurChk').checked;
   if(!name||!start||!end){alert('タスク名と期間を入力してください');return;}
@@ -1143,9 +1179,9 @@ function saveTask(){
   }
   if(editId){
     const t=p.tasks.find(x=>x.id===editId);
-    if(t){Object.assign(t,{name,start,end,estHours:est,actHours:act,actStart,actEnd,assigneeId,recur});}
+    if(t){Object.assign(t,{name,start,end,estHours:est,actHours:act,actStart,actEnd,assigneeId,assigneeIds,recur});}
   }else{
-    p.tasks.push({id:uid(),name,start,end,estHours:est,actHours:act,actStart,actEnd,assigneeId,recur});
+    p.tasks.push({id:uid(),name,start,end,estHours:est,actHours:act,actStart,actEnd,assigneeId,assigneeIds,recur});
   }
   save();closeModal('taskModal');render();
 }
@@ -1213,7 +1249,7 @@ function renderMemberList(){
   if(!members.length){el.innerHTML='<div style="font-size:10px;color:var(--gray-400);padding:4px 7px;">メンバーなし</div>';return;}
   const td=today();
   el.innerHTML=members.map(m=>{
-    const tasks=p?p.tasks.filter(t=>t.assigneeId===m.id):[];
+    const tasks=p?p.tasks.filter(t=>t.assigneeId===m.id||(t.assigneeIds&&t.assigneeIds.includes(m.id))):[];
     const totalH=tasks.reduce((s,t)=>s+recurTotalHours(t),0);
     return `<div class="mi-item">
       <div class="av" style="background:${m.color}">${m.name.charAt(0)}</div>
@@ -1339,6 +1375,11 @@ function renderMain(){
     const isRecur=!!t.recur;
     const totalH=recurTotalHours(t);
     const isDraggable=sortMode==='manual';
+    // Multi-assignee avatars for recur tasks
+    const recurMembers=isRecur&&t.assigneeIds&&t.assigneeIds.length
+      ?(t.assigneeIds.map(id=>getMember(id)).filter(Boolean))
+      :[];
+    const barColor=isRecur?'var(--recur)':(m?m.color:'#9ca3af');
     leftTasks+=`<div class="tr-left${isRecur?' recur-row':''}" data-taskid="${t.id}"
       draggable="${isDraggable}" onclick="openEditTask('${t.id}')"
       ondragstart="onDragStart(event,'${t.id}')"
@@ -1346,9 +1387,11 @@ function renderMain(){
       ondrop="onDrop(event,'${t.id}')"
       ondragend="onDragEnd()">
       ${isDraggable?`<div class="drag-handle" onclick="event.stopPropagation()"><span></span><span></span><span></span></div>`:''}
-      <div class="tdot" style="background:${isRecur?'var(--recur)':col}"></div>
+      <div class="tdot" style="background:${barColor}"></div>
       <div class="tncell">${t.name}</div>
-      ${m?`<div class="tchip" style="background:${col}">${m.name.charAt(0)}</div>`:''}
+      ${isRecur&&recurMembers.length
+        ?`<div class="multi-chips">${recurMembers.slice(0,4).map(rm=>`<div class="tchip" style="background:${rm.color};flex-shrink:0;">${rm.name.charAt(0)}</div>`).join('')}${recurMembers.length>4?`<div class="tchip" style="background:var(--gray-400)">+${recurMembers.length-4}</div>`:''}</div>`
+        :(m?`<div class="tchip" style="background:${col}">${m.name.charAt(0)}</div>`:'')}
       ${isRecur?`<div class="recur-tag">🔁 ${Math.round(totalH*10)/10}h</div>`:''}
       <div class="tr-acts">
         <button class="tr-btn" onclick="event.stopPropagation();openEditTask('${t.id}')">✏️</button>
@@ -1364,15 +1407,19 @@ function renderMain(){
       const bw=barWidth(bs,be,p);
       if(isRecur){
         const occCount=getRecurDates(t).filter(d=>d>=p.start&&d<=p.end).length;
+        const rMembers=(t.assigneeIds&&t.assigneeIds.length)?t.assigneeIds.map(id=>getMember(id)).filter(Boolean):[];
+        const rColMain=rMembers.length?rMembers[0].color:col;
+        const rBg=rMembers.length>1
+          ?`linear-gradient(to right,${rMembers.map((rm,i)=>`${rm.color} ${i/rMembers.length*100}% ${(i+1)/rMembers.length*100}%`).join(',')})`
+          :rColMain;
+        const perPersonH=rMembers.length?Math.round(totalH/rMembers.length*10)/10:Math.round(totalH*10)/10;
         rightBars+=`<div class="rbar-wrap" style="left:${bl}px;width:${bw}px;"
           onmouseenter="showTT(event,'${t.id}')" onmousemove="moveTT(event)" onmouseleave="hideTT()"
           ondblclick="openEditTask('${t.id}')">
-          <div class="rbar-track" style="background:${col};">
+          <div class="rbar-track" style="background:${rBg};">
             <div class="rbar-stripe"></div>
-            <div class="rbar-cap-l" style="background:${col};"></div>
-            <div class="rbar-cap-r" style="background:${col};"></div>
           </div>
-          <div class="rbar-total" style="background:var(--recur);">${Math.round(totalH*10)/10}h / ${occCount}回</div>
+          <div class="rbar-total" style="background:var(--recur);">${occCount}回 × ${t.recur.perOcc||1}h${rMembers.length>1?' × '+rMembers.length+'人':''}</div>
         </div>`;
       }else{
         rightBars+=`<div class="gbar" style="left:${bl}px;width:${bw}px;background:${col};"
@@ -1466,7 +1513,8 @@ function buildMonthlySummary(p,tw){
     const cells=months.map(mo=>{
       let h=0;
       (p.tasks||[]).forEach(t=>{
-        if(t.assigneeId!==m.id)return;
+        const isAssigned=t.assigneeId===m.id||(t.recur&&t.assigneeIds&&t.assigneeIds.includes(m.id));
+        if(!isAssigned)return;
         if(t.recur){h+=recurHoursInMonth(t,mo.key);}
         else{
           if(t.end<mo.key+'-01'||t.start>mo.key+'-31')return;
@@ -1531,7 +1579,7 @@ function renderDashboardView(){
   const cards=members.map(m=>{
     // Collect tasks across all projects for this member
     const projData=state.projects.map(p=>{
-      const tasks=(p.tasks||[]).filter(t=>t.assigneeId===m.id);
+      const tasks=(p.tasks||[]).filter(t=>t.assigneeId===m.id||(t.recur&&t.assigneeIds&&t.assigneeIds.includes(m.id)));
       if(!tasks.length)return null;
       const totalH=tasks.reduce((s,t)=>s+recurTotalHours(t),0);
       const monthHours={};
@@ -1625,7 +1673,7 @@ function openStats(){
   const recurCount=tasks.filter(t=>t.recur).length;
 
   const memberRows=members.map(m=>{
-    const mt=tasks.filter(t=>t.assigneeId===m.id);
+    const mt=tasks.filter(t=>t.assigneeId===m.id||(t.recur&&t.assigneeIds&&t.assigneeIds.includes(m.id)));
     const h=mt.reduce((s,t)=>s+recurTotalHours(t),0);
     return `<tr>
       <td><div style="display:flex;align-items:center;gap:6px;"><div class="av" style="background:${m.color};width:20px;height:20px;font-size:9px;">${m.name.charAt(0)}</div>${m.name}</div></td>
@@ -1679,7 +1727,10 @@ function showTT(e,id){
   const tt=document.getElementById('gTT');
   let html=`<div class="tt-title">${t.name}</div>`;
   html+=`<div class="tt-row"><span>📅</span><span>${t.start} 〜 ${t.end}</span></div>`;
-  if(m)html+=`<div class="tt-row"><span>👤</span><span>${m.name}</span></div>`;
+  if(t.recur&&t.assigneeIds&&t.assigneeIds.length){
+    const rms=t.assigneeIds.map(id=>getMember(id)).filter(Boolean);
+    if(rms.length)html+=`<div class="tt-row"><span>👥</span><span>${rms.map(rm=>rm.name).join('・')}</span></div>`;
+  }else if(m){html+=`<div class="tt-row"><span>👤</span><span>${m.name}</span></div>`;}
   if(t.recur){
     const dates=getRecurDates(t).filter(d=>d>=p.start&&d<=p.end);
     const total=dates.length*(t.recur.perOcc||1);
@@ -1789,184 +1840,34 @@ window.addEventListener('afterprint', function() {
   </div>
 </div>
 
-
 <script>
-var DBX_KEY = 'pmchart_dbx_v3';
-var DBX_PATH = '/pmchart-data.json';
-var _dbxToken = localStorage.getItem(DBX_KEY) || '';
-var _dbxEnabled = false;
-var _dbxTimer = null;
-var _dbxBusy = false;
-
-function _dbxDot(cls, msg) {
-  var d = document.getElementById('dbxDot');
-  var s = document.getElementById('dbxStatus');
-  if (!d) return;
-  d.className = 'dbx-dot' + (cls ? ' ' + cls : '');
-  s.textContent = msg;
-}
-function _dbxButtons(connected) {
-  document.getElementById('dbxSyncBtn').style.display = connected ? 'inline-flex' : 'none';
-  document.getElementById('dbxDiscBtn').style.display = connected ? 'inline-flex' : 'none';
-  document.getElementById('dbxConnBtn').style.display = connected ? 'none' : 'inline-flex';
-}
-function _dbxMsg(msg, color) {
-  var el = document.getElementById('dbxMsg');
-  el.style.display = 'block';
-  el.style.color = color || 'var(--gray-500)';
-  el.textContent = msg;
-}
-async function _dbxWhoami() {
-  var r = await fetch('https://api.dropboxapi.com/2/users/get_current_account', {
-    method: 'POST', headers: {'Authorization':'Bearer '+_dbxToken,'Content-Type':'application/json'}, body: 'null'
-  });
-  if (!r.ok) throw new Error('トークンが無効です ('+r.status+')');
-  return r.json();
-}
-async function _dbxUpload() {
-  var r = await fetch('https://content.dropboxapi.com/2/files/upload', {
-    method: 'POST',
-    headers: {
-      'Authorization': 'Bearer '+_dbxToken,
-      'Dropbox-API-Arg': JSON.stringify({path:DBX_PATH,mode:'overwrite',autorename:false,mute:true}),
-      'Content-Type': 'application/octet-stream'
-    },
-    body: JSON.stringify(state)
-  });
-  if (!r.ok) { var e = await r.json().catch(function(){return{};}); throw new Error(e.error_summary||r.status); }
-}
-async function _dbxDownload() {
-  var r = await fetch('https://content.dropboxapi.com/2/files/download', {
-    method: 'POST',
-    headers: {'Authorization':'Bearer '+_dbxToken,'Dropbox-API-Arg':JSON.stringify({path:DBX_PATH})}
-  });
-  if (r.status === 409) return null;
-  if (!r.ok) throw new Error(r.status+'');
-  return r.json();
-}
-async function _dbxInitialSync() {
-  try {
-    var remote = await _dbxDownload();
-    if (remote && remote.projects) {
-      var remoteIds = new Set(remote.projects.map(function(p){return p.id;}));
-      var localOnly = state.projects.filter(function(p){return !remoteIds.has(p.id);});
-      state.projects = remote.projects.concat(localOnly);
-      if (remote.currentId) state.currentId = remote.currentId;
-      if (remote.members) state.members = remote.members;
-      localStorage.setItem('pmchart7', JSON.stringify(state));
-      render();
-    } else { await _dbxUpload(); }
-  } catch(e) { try { await _dbxUpload(); } catch(e2) {} }
-}
-async function dbxSubmit() {
-  var token = document.getElementById('dbxTokenInput').value.trim();
-  if (!token) { alert('トークンを入力してください'); return; }
-  _dbxToken = token;
-  _dbxMsg('接続確認中...', 'var(--gray-500)');
-  try {
-    var acct = await _dbxWhoami();
-    localStorage.setItem(DBX_KEY, token);
-    _dbxEnabled = true;
-    _dbxMsg('接続成功！ '+(acct.name?acct.name.display_name:''), 'var(--success)');
-    _dbxDot('syncing', '同期中...');
-    await _dbxInitialSync();
-    var now = new Date();
-    _dbxDot('ok', 'Dropbox同期済み '+('0'+now.getHours()).slice(-2)+':'+('0'+now.getMinutes()).slice(-2));
-    _dbxButtons(true);
-    _dbxStartTimer();
-    setTimeout(function(){closeModal('dbxModal');}, 1200);
-  } catch(e) {
-    _dbxToken = '';
-    _dbxMsg('接続失敗: '+e.message, 'var(--danger)');
-    _dbxDot('error', '接続エラー');
-  }
-}
-function dbxDisconnect() {
-  if (!confirm('Dropbox接続を切断しますか？ローカルのデータは保持されます。')) return;
-  localStorage.removeItem(DBX_KEY);
-  _dbxToken = ''; _dbxEnabled = false;
-  if (_dbxTimer) clearInterval(_dbxTimer);
-  _dbxDot('', 'Dropbox未接続');
-  _dbxButtons(false);
-}
-async function dbxSyncNow() {
-  if (!_dbxEnabled || _dbxBusy) return;
-  _dbxBusy = true;
-  _dbxDot('syncing', '同期中...');
-  try {
-    await _dbxUpload();
-    var now = new Date();
-    _dbxDot('ok', '同期完了 '+('0'+now.getHours()).slice(-2)+':'+('0'+now.getMinutes()).slice(-2));
-  } catch(e) { _dbxDot('error', '同期エラー: '+e.message.slice(0,20)); }
-  finally { _dbxBusy = false; }
-}
-async function _dbxPull() {
-  if (!_dbxEnabled || _dbxBusy) return;
-  try {
-    var remote = await _dbxDownload();
-    if (!remote) return;
-    var rs = JSON.stringify((remote.projects||[]).map(function(p){return p.id+':'+(p.tasks?p.tasks.length:0);}));
-    var ls = JSON.stringify((state.projects||[]).map(function(p){return p.id+':'+(p.tasks?p.tasks.length:0);}));
-    if (rs !== ls || JSON.stringify(remote.members) !== JSON.stringify(state.members)) {
-      state = remote;
-      localStorage.setItem('pmchart7', JSON.stringify(state));
-      render();
-      var now = new Date();
-      _dbxDot('ok', '受信 '+('0'+now.getHours()).slice(-2)+':'+('0'+now.getMinutes()).slice(-2));
-    }
-  } catch(e) {}
-}
-function _dbxStartTimer() {
-  if (_dbxTimer) clearInterval(_dbxTimer);
-  _dbxTimer = setInterval(_dbxPull, 30000);
-}
-var _origSave = save;
-window.save = function() {
-  _origSave();
-  if (_dbxEnabled) {
-    clearTimeout(window._dbxSaveTimer);
-    window._dbxSaveTimer = setTimeout(function() {
-      _dbxDot('syncing', '保存中...');
-      _dbxUpload().then(function() {
-        var now = new Date();
-        _dbxDot('ok', '保存済み '+('0'+now.getHours()).slice(-2)+':'+('0'+now.getMinutes()).slice(-2));
-      }).catch(function(){ _dbxDot('error', '保存エラー'); });
-    }, 1500);
-  }
-};
-document.addEventListener('visibilitychange', function(){if(!document.hidden&&_dbxEnabled)_dbxPull();});
-async function _dbxInit() {
-  if (!_dbxToken) { _dbxDot('', 'Dropbox未接続'); _dbxButtons(false); return; }
-  _dbxDot('syncing', 'Dropbox確認中...');
-  try {
-    await _dbxWhoami();
-    _dbxEnabled = true;
-    await _dbxInitialSync();
-    _dbxDot('ok', 'Dropbox接続済み');
-    _dbxButtons(true);
-    _dbxStartTimer();
-  } catch(e) {
-    localStorage.removeItem(DBX_KEY);
-    _dbxToken = '';
-    _dbxDot('error', '再接続が必要です');
-    _dbxButtons(false);
-  }
-}
-document.addEventListener('DOMContentLoaded', function() {
-  document.getElementById('dbxConnBtn').addEventListener('click', function(){openModal('dbxModal');});
-  document.getElementById('dbxSyncBtn').addEventListener('click', dbxSyncNow);
-  document.getElementById('dbxDiscBtn').addEventListener('click', dbxDisconnect);
-  document.getElementById('dbxModalCloseBtn').addEventListener('click', function(){closeModal('dbxModal');});
-  document.getElementById('dbxModalCancelBtn').addEventListener('click', function(){closeModal('dbxModal');});
-  document.getElementById('dbxSubmitBtn').addEventListener('click', dbxSubmit);
-  setTimeout(_dbxInit, 300);
+var DBX_KEY='pmchart_dbx_v3',DBX_PATH='/pmchart-data.json';
+var _dbxToken=localStorage.getItem(DBX_KEY)||'',_dbxEnabled=false,_dbxTimer=null,_dbxBusy=false;
+function _dbxDot(cls,msg){var d=document.getElementById('dbxDot'),s=document.getElementById('dbxStatus');if(!d)return;d.className='dbx-dot'+(cls?' '+cls:'');s.textContent=msg;}
+function _dbxButtons(ok){document.getElementById('dbxSyncBtn').style.display=ok?'inline-flex':'none';document.getElementById('dbxDiscBtn').style.display=ok?'inline-flex':'none';document.getElementById('dbxConnBtn').style.display=ok?'none':'inline-flex';}
+function _dbxMsg(msg,color){var el=document.getElementById('dbxMsg');el.style.display='block';el.style.color=color||'var(--gray-500)';el.textContent=msg;}
+async function _dbxWhoami(){var r=await fetch('https://api.dropboxapi.com/2/users/get_current_account',{method:'POST',headers:{'Authorization':'Bearer '+_dbxToken,'Content-Type':'application/json'},body:'null'});if(!r.ok)throw new Error('トークンが無効です ('+r.status+')');return r.json();}
+async function _dbxUpload(){var r=await fetch('https://content.dropboxapi.com/2/files/upload',{method:'POST',headers:{'Authorization':'Bearer '+_dbxToken,'Dropbox-API-Arg':JSON.stringify({path:DBX_PATH,mode:'overwrite',autorename:false,mute:true}),'Content-Type':'application/octet-stream'},body:JSON.stringify(state)});if(!r.ok){var e=await r.json().catch(function(){return{};});throw new Error(e.error_summary||r.status);}}
+async function _dbxDownload(){var r=await fetch('https://content.dropboxapi.com/2/files/download',{method:'POST',headers:{'Authorization':'Bearer '+_dbxToken,'Dropbox-API-Arg':JSON.stringify({path:DBX_PATH})}});if(r.status===409)return null;if(!r.ok)throw new Error(r.status+'');return r.json();}
+async function _dbxInitialSync(){try{var remote=await _dbxDownload();if(remote&&remote.projects){var remoteIds=new Set(remote.projects.map(function(p){return p.id;}));var localOnly=state.projects.filter(function(p){return!remoteIds.has(p.id);});state.projects=remote.projects.concat(localOnly);if(remote.currentId)state.currentId=remote.currentId;if(remote.members)state.members=remote.members;localStorage.setItem('pmchart7',JSON.stringify(state));render();}else{await _dbxUpload();}}catch(e){try{await _dbxUpload();}catch(e2){}}}
+async function dbxSubmit(){var token=document.getElementById('dbxTokenInput').value.trim();if(!token){alert('トークンを入力してください');return;}_dbxToken=token;_dbxMsg('接続確認中...','var(--gray-500)');try{var acct=await _dbxWhoami();localStorage.setItem(DBX_KEY,token);_dbxEnabled=true;_dbxMsg('接続成功！ '+(acct.name?acct.name.display_name:''),'var(--success)');_dbxDot('syncing','同期中...');await _dbxInitialSync();var now=new Date();_dbxDot('ok','Dropbox同期済み '+('0'+now.getHours()).slice(-2)+':'+('0'+now.getMinutes()).slice(-2));_dbxButtons(true);_dbxStartTimer();setTimeout(function(){closeModal('dbxModal');},1200);}catch(e){_dbxToken='';_dbxMsg('接続失敗: '+e.message,'var(--danger)');_dbxDot('error','接続エラー');}}
+function dbxDisconnect(){if(!confirm('Dropbox接続を切断しますか？'))return;localStorage.removeItem(DBX_KEY);_dbxToken='';_dbxEnabled=false;if(_dbxTimer)clearInterval(_dbxTimer);_dbxDot('','Dropbox未接続');_dbxButtons(false);}
+async function dbxSyncNow(){if(!_dbxEnabled||_dbxBusy)return;_dbxBusy=true;_dbxDot('syncing','同期中...');try{await _dbxUpload();var now=new Date();_dbxDot('ok','同期完了 '+('0'+now.getHours()).slice(-2)+':'+('0'+now.getMinutes()).slice(-2));}catch(e){_dbxDot('error','同期エラー');}finally{_dbxBusy=false;}}
+async function _dbxPull(){if(!_dbxEnabled||_dbxBusy)return;try{var remote=await _dbxDownload();if(!remote)return;var rs=JSON.stringify((remote.projects||[]).map(function(p){return p.id+':'+(p.tasks?p.tasks.length:0);}));var ls=JSON.stringify((state.projects||[]).map(function(p){return p.id+':'+(p.tasks?p.tasks.length:0);}));if(rs!==ls||JSON.stringify(remote.members)!==JSON.stringify(state.members)){state=remote;localStorage.setItem('pmchart7',JSON.stringify(state));render();var now=new Date();_dbxDot('ok','受信 '+('0'+now.getHours()).slice(-2)+':'+('0'+now.getMinutes()).slice(-2));}}catch(e){}}
+function _dbxStartTimer(){if(_dbxTimer)clearInterval(_dbxTimer);_dbxTimer=setInterval(_dbxPull,30000);}
+var _origSave=save;window.save=function(){_origSave();if(_dbxEnabled){clearTimeout(window._dbxSaveTimer);window._dbxSaveTimer=setTimeout(function(){_dbxDot('syncing','保存中...');_dbxUpload().then(function(){var now=new Date();_dbxDot('ok','保存済み '+('0'+now.getHours()).slice(-2)+':'+('0'+now.getMinutes()).slice(-2));}).catch(function(){_dbxDot('error','保存エラー');});},1500);}};
+document.addEventListener('visibilitychange',function(){if(!document.hidden&&_dbxEnabled)_dbxPull();});
+async function _dbxInit(){if(!_dbxToken){_dbxDot('','Dropbox未接続');_dbxButtons(false);return;}_dbxDot('syncing','Dropbox確認中...');try{await _dbxWhoami();_dbxEnabled=true;await _dbxInitialSync();_dbxDot('ok','Dropbox接続済み');_dbxButtons(true);_dbxStartTimer();}catch(e){localStorage.removeItem(DBX_KEY);_dbxToken='';_dbxDot('error','再接続が必要です');_dbxButtons(false);}}
+document.addEventListener('DOMContentLoaded',function(){
+  document.getElementById('dbxConnBtn').addEventListener('click',function(){openModal('dbxModal');});
+  document.getElementById('dbxSyncBtn').addEventListener('click',dbxSyncNow);
+  document.getElementById('dbxDiscBtn').addEventListener('click',dbxDisconnect);
+  document.getElementById('dbxModalCloseBtn').addEventListener('click',function(){closeModal('dbxModal');});
+  document.getElementById('dbxModalCancelBtn').addEventListener('click',function(){closeModal('dbxModal');});
+  document.getElementById('dbxSubmitBtn').addEventListener('click',dbxSubmit);
+  setTimeout(_dbxInit,300);
 });
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', function(){
-    navigator.serviceWorker.register('./sw.js').catch(function(e){console.log('SW:',e);});
-  });
-}
+if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('./sw.js').catch(function(e){console.log('SW:',e);});});}
 </script>
-
 </body>
 </html>
