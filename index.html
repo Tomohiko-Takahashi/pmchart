@@ -1165,9 +1165,9 @@ function saveTask(){
   const actStart=document.getElementById('tActStart').value;
   const actEnd=document.getElementById('tActEnd').value;
   const assigneeId=document.getElementById('tAssignee').value;
-  const assigneeIds=isRecur?getSelectedAssigneeIds():[];
   const editId=document.getElementById('tEditId').value;
   const isRecur=document.getElementById('tRecurChk').checked;
+  const assigneeIds=isRecur?getSelectedAssigneeIds():[];
   if(!name||!start||!end){alert('タスク名と期間を入力してください');return;}
   let recur=null;
   if(isRecur){
