@@ -155,12 +155,11 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--gray-50);color:var(-
 .gbar{position:absolute;top:9px;height:24px;border-radius:4px;cursor:pointer;display:flex;align-items:center;padding:0 6px;min-width:4px;transition:.1s;}
 .gbar:hover{filter:brightness(.92);}
 .bar-lbl{font-size:9px;font-weight:600;color:rgba(255,255,255,.9);white-space:nowrap;overflow:hidden;}
-.rbar-wrap{position:absolute;top:9px;height:24px;cursor:pointer;}
-.rbar-track{width:100%;height:100%;border-radius:4px;position:relative;overflow:hidden;}
-.rbar-stripe{position:absolute;inset:0;background:repeating-linear-gradient(45deg,rgba(255,255,255,.18) 0px,rgba(255,255,255,.18) 4px,transparent 4px,transparent 9px);}
-.rbar-cap-l{position:absolute;left:0;top:0;bottom:0;width:4px;border-radius:4px 0 0 4px;}
-.rbar-cap-r{position:absolute;right:0;top:0;bottom:0;width:4px;border-radius:0 4px 4px 0;}
-.rbar-total{position:absolute;top:-14px;right:0;font-size:9px;font-weight:700;padding:1px 4px;border-radius:3px;color:#fff;white-space:nowrap;}
+.rbar-wrap{position:absolute;top:0;left:0;right:0;height:42px;pointer-events:none;}
+.rbar-seg{position:absolute;top:11px;height:20px;border-radius:3px;pointer-events:auto;cursor:pointer;transition:.1s;}
+.rbar-seg:hover{filter:brightness(.88);}
+.rbar-seg-off{position:absolute;top:19px;height:4px;border-radius:2px;pointer-events:none;background:var(--gray-200);}
+.rbar-total{position:absolute;top:1px;right:4px;font-size:9px;font-weight:700;padding:1px 4px;border-radius:3px;color:#fff;white-space:nowrap;pointer-events:none;}
 .task-section-hdr{height:42px;display:flex;align-items:center;padding:0 12px;background:var(--gray-50);border-bottom:1px solid var(--gray-100);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--gray-400);gap:6px;}
 
 /* MONTHLY SUMMARY */
@@ -1451,20 +1450,55 @@ function renderMain(){
       const bl=dateToX(bs,p);
       const bw=barWidth(bs,be,p);
       if(isRecur){
-        const occCount=getRecurDates(t).filter(d=>d>=p.start&&d<=p.end).length;
         const rMembers=(t.assigneeIds&&t.assigneeIds.length)?t.assigneeIds.map(id=>getMember(id)).filter(Boolean):[];
-        const rColMain=rMembers.length?rMembers[0].color:col;
-        const rBg=rMembers.length>1
-          ?`linear-gradient(to right,${rMembers.map((rm,i)=>`${rm.color} ${i/rMembers.length*100}% ${(i+1)/rMembers.length*100}%`).join(',')})`
-          :rColMain;
-        const perPersonH=rMembers.length?Math.round(totalH/rMembers.length*10)/10:Math.round(totalH*10)/10;
-        rightBars+=`<div class="rbar-wrap" style="left:${bl}px;width:${bw}px;"
-          onmouseenter="showTT(event,'${t.id}')" onmousemove="moveTT(event)" onmouseleave="hideTT()"
-          ondblclick="openEditTask('${t.id}')">
-          <div class="rbar-track" style="background:${rBg};">
-            <div class="rbar-stripe"></div>
-          </div>
-          <div class="rbar-total" style="background:var(--recur);">${occCount}回 × ${t.recur.perOcc||1}h${rMembers.length>1?' × '+rMembers.length+'人':''}</div>
+        const rCol=rMembers.length?rMembers[0].color:col;
+        // Build segments: one colored block per occurrence, gray connectors between
+        const allRecurDates=getRecurDates(t);
+        const visibleDates=allRecurDates.filter(d=>d>=p.start&&d<=p.end);
+        const occCount=visibleDates.length;
+        const CW=colWidth();
+
+        // For day scale: render each occurrence as a colored cell, gaps as gray
+        // For week/month scale: render proportional colored segments
+        let segsHtml='';
+        const spanL=dateToX(bs,p);
+        const spanW=bw;
+
+        if(currentScale==='day'){
+          // Each day cell: colored if occurrence, gray-dot if not
+          const days=buildDays(bs,be);
+          days.forEach(d=>{
+            const x=dateToX(d,p);
+            const isOcc=allRecurDates.includes(d);
+            if(isOcc){
+              // Colored segment: full cell width, multi-member gradient
+              const segCol=rMembers.length>1
+                ?`linear-gradient(to bottom,${rMembers.map((rm,i)=>`${rm.color} ${i/rMembers.length*100}% ${(i+1)/rMembers.length*100}%`).join(',')})`
+                :rCol;
+              segsHtml+=`<div class="rbar-seg" style="left:${x+1}px;width:${CW-2}px;background:${segCol};"
+                onmouseenter="showTT(event,'${t.id}')" onmousemove="moveTT(event)" onmouseleave="hideTT()"
+                ondblclick="openEditTask('${t.id}')"></div>`;
+            } else {
+              // Non-occurrence: thin gray line
+              segsHtml+=`<div class="rbar-seg-off" style="left:${x}px;width:${CW}px;"></div>`;
+            }
+          });
+        } else {
+          // Week/month scale: classic stripe bar (縞模様)
+          const rBg=rMembers.length>1
+            ?`linear-gradient(to right,${rMembers.map((rm,i)=>`${rm.color} ${i/rMembers.length*100}% ${(i+1)/rMembers.length*100}%`).join(',')})`
+            :rCol;
+          segsHtml=`<div class="rbar-seg" style="left:${spanL}px;width:${spanW}px;top:11px;height:20px;background:${rBg};border-radius:4px;overflow:hidden;"
+            onmouseenter="showTT(event,'${t.id}')" onmousemove="moveTT(event)" onmouseleave="hideTT()"
+            ondblclick="openEditTask('${t.id}')">
+            <div style="position:absolute;inset:0;background:repeating-linear-gradient(45deg,rgba(255,255,255,.18) 0px,rgba(255,255,255,.18) 4px,transparent 4px,transparent 9px);"></div>
+          </div>`;
+        }
+
+        rightBars+=`<div class="rbar-wrap"
+          onmouseenter="showTT(event,'${t.id}')" onmousemove="moveTT(event)" onmouseleave="hideTT()">
+          ${segsHtml}
+          <div class="rbar-total" style="background:var(--recur);right:${currentScale==='day'?4:Math.max(0,dateToX(p.end,p)-spanL-spanW+4)}px;">${occCount}回 × ${t.recur.perOcc||1}h${rMembers.length>1?' × '+rMembers.length+'人':''}</div>
         </div>`;
       }else{
         rightBars+=`<div class="gbar" style="left:${bl}px;width:${bw}px;background:${col};"
@@ -1949,13 +1983,11 @@ function showDrop(){
   dd.style.display='block';
   dd.innerHTML=state.projects.map(p=>{
     const isCur=p.id===state.currentId;
-    const item=document.createElement('div');
-    item.style.cssText='padding:9px 14px;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:12px;';
-    item.innerHTML=`<span style="font-weight:${isCur?600:400};color:${isCur?'var(--accent)':'var(--gray-700)'};">${p.name}</span>`;
-    item.onmouseenter=()=>item.style.background='var(--gray-50)';
-    item.onmouseleave=()=>item.style.background='';
-    item.onclick=()=>{state.currentId=p.id;save();dd.style.display='none';render();};
-    return item.outerHTML;
+    return `<div style="padding:9px 14px;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:12px;"
+      onmouseenter="this.style.background='var(--gray-50)'" onmouseleave="this.style.background=''"
+      onclick="state.currentId='${p.id}';save();document.getElementById('projDrop').style.display='none';render();">
+      <span style="font-weight:${isCur?600:400};color:${isCur?'var(--accent)':'var(--gray-700)'};">${p.name}</span>
+    </div>`;
   }).join('')||'<div style="padding:10px 14px;font-size:11px;color:var(--gray-400);">プロジェクトなし</div>';
 }
 document.addEventListener('click',e=>{
